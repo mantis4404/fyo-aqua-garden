@@ -400,7 +400,7 @@
 <div class="modal-overlay" id="loginModal" hidden>
   <div class="confirm-panel">
     <h3>Sign In</h3>
-    <p>Enter your authorized user credentials to log species entries.</p>
+    <p>Enter your authorized user credentials to log entries.</p>
     <form id="loginForm" autocomplete="on" onsubmit="return false;">
       <input type="email" id="loginEmail" name="email" class="form-input" placeholder="Authorized Email" autocomplete="username" required>
       <input type="password" id="loginPassword" name="password" class="form-input" placeholder="Password" autocomplete="current-password" required>
@@ -462,71 +462,45 @@
   </div>
 </div>
 
-<input type="file" id="galleryFileInput" accept="image/*" multiple hidden>
-
 <div class="toast" id="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script>
-const STORAGE_KEY = 'catalog:entries';
-const GALLERY_PREFIX = 'gallery:';
 const THEME_KEY = 'catalog:theme';
-const AUTH_KEY = 'catalog:auth_user';
 
-// List allowed email addresses here:
-const ALLOWED_USERS = []; // e.g. ["myemail@example.com"]
+// Firebase project config — safe to keep public; access is enforced by
+// Firestore Security Rules and Firebase Auth, not by hiding this.
+const firebaseConfig = {
+  apiKey: "AIzaSyCzBvlxbwP5SZJhEJ9550-Kru7eVmj_9xU",
+  authDomain: "fyo-aqua-garden.firebaseapp.com",
+  projectId: "fyo-aqua-garden",
+  storageBucket: "fyo-aqua-garden.firebasestorage.app",
+  messagingSenderId: "593835864414",
+  appId: "1:593835864414:web:8abac971960e1b98c4dfcf",
+  measurementId: "G-K2ZT95CHDZ"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const entriesCollection = db.collection('entries');
+
+// List allowed email addresses here — must match the Firestore Security Rules.
+const ALLOWED_USERS = ["howingowentam@gmail.com", "lazerboltx1@gmail.com"];
 
 let currentUser = null;
 let entries = [];
-let galleryPhotos = [];
 let currentPage = 'home';
 let editing = null;
 
 const catColor = { Plants:'#5e9b6e', Algae:'#5e9b6e', Fish:'#5e9b6e', Insects:'#5e9b6e', Gallery:'#5e9b6e' };
 const catLabel = { Plants:'Plants', Algae:'Algae', Fish:'Fish', Insects:'Invertebrates', Gallery:'Gallery' };
-const catSingular = { Plants:'plant', Algae:'algae', Fish:'fish', Insects:'invertebrate' };
+const catSingular = { Plants:'plant', Algae:'algae', Fish:'fish', Insects:'invertebrate', Gallery:'gallery post' };
+const NO_SPECIES_CATS = ['Gallery'];
 
 function uid(){ return 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
 function escapeHtml(str){ return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-/* ---------- storage adapter ---------- */
-const hasArtifactStorage = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
-
-const storageAdapter = {
-  async get(key){
-    if(hasArtifactStorage){
-      try{ return await window.storage.get(key, false); }catch(e){ return null; }
-    }
-    try{
-      const raw = localStorage.getItem(key);
-      return raw === null ? null : { key, value: raw };
-    }catch(e){ return null; }
-  },
-  async set(key, value){
-    if(hasArtifactStorage){
-      try{ return await window.storage.set(key, value, false); }catch(e){ return null; }
-    }
-    try{ localStorage.setItem(key, value); return { key, value }; }catch(e){ return null; }
-  },
-  async delete(key){
-    if(hasArtifactStorage){
-      try{ return await window.storage.delete(key, false); }catch(e){ return null; }
-    }
-    try{ localStorage.removeItem(key); return { key, deleted:true }; }catch(e){ return null; }
-  },
-  async list(prefix){
-    if(hasArtifactStorage){
-      try{ return await window.storage.list(prefix, false); }catch(e){ return null; }
-    }
-    try{
-      const keys = [];
-      for(let i=0;i<localStorage.length;i++){
-        const k = localStorage.key(i);
-        if(k && k.indexOf(prefix) === 0) keys.push(k);
-      }
-      return { keys };
-    }catch(e){ return null; }
-  }
-};
 
 /* ---------- authentication state ---------- */
 function isAuthorized() {
@@ -534,15 +508,13 @@ function isAuthorized() {
   return currentUser && ALLOWED_USERS.map(e => e.toLowerCase()).includes(currentUser.toLowerCase());
 }
 
-async function loadAuth() {
-  try {
-    const res = await storageAdapter.get(AUTH_KEY);
-    if (res && res.value) {
-      currentUser = res.value;
-    }
-  } catch(e) {}
+// Firebase Auth persists sign-in per device on its own, so this fires with
+// the restored user (if any) as soon as the SDK initializes.
+auth.onAuthStateChanged((user) => {
+  currentUser = user ? user.email : null;
   updateAuthUI();
-}
+  renderAll();
+});
 
 function updateAuthUI() {
   const authBtn = document.getElementById('authBtn');
@@ -555,9 +527,7 @@ function updateAuthUI() {
 
 document.getElementById('authBtn').addEventListener('click', async () => {
   if (currentUser) {
-    currentUser = null;
-    await storageAdapter.delete(AUTH_KEY);
-    updateAuthUI();
+    await auth.signOut();
     showToast('Logged out');
     if (editing) { editing = null; }
     renderAll();
@@ -570,21 +540,33 @@ document.getElementById('authBtn').addEventListener('click', async () => {
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim();
-  if (!email) return;
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return;
 
-  if (ALLOWED_USERS.length > 0 && !ALLOWED_USERS.map(u => u.toLowerCase()).includes(email.toLowerCase())) {
-    showToast('Unauthorized email address');
-    return;
+  const submitBtn = document.getElementById('loginSubmitBtn');
+  submitBtn.disabled = true;
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+
+    if (ALLOWED_USERS.length > 0 && !ALLOWED_USERS.map(u => u.toLowerCase()).includes(email.toLowerCase())) {
+      await auth.signOut();
+      showToast('This account is not authorized to log entries');
+      return;
+    }
+
+    document.getElementById('loginModal').hidden = true;
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginPassword').value = '';
+    showToast('Logged in');
+  } catch (err) {
+    const code = err && err.code;
+    const friendly = (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-email')
+      ? 'Incorrect email or password'
+      : 'Could not log in — try again';
+    showToast(friendly);
+  } finally {
+    submitBtn.disabled = false;
   }
-
-  currentUser = email;
-  await storageAdapter.set(AUTH_KEY, currentUser);
-  document.getElementById('loginModal').hidden = true;
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginPassword').value = '';
-  updateAuthUI();
-  showToast('Logged in');
-  renderAll();
 });
 
 document.getElementById('loginCancelBtn').addEventListener('click', () => {
@@ -592,8 +574,6 @@ document.getElementById('loginCancelBtn').addEventListener('click', () => {
 });
 
 /* ---------- entry data schema ---------- */
-const ENTRY_SCHEMA_VERSION = 1;
-
 function normalizeEntry(raw){
   if(!raw || typeof raw !== 'object') return null;
   return {
@@ -609,59 +589,23 @@ function normalizeEntry(raw){
   };
 }
 
-async function loadEntries(){
-  let needsResave = false;
-  try{
-    const res = await storageAdapter.get(STORAGE_KEY);
-    if(res && res.value){
-      const parsed = JSON.parse(res.value);
-      const version = (parsed && !Array.isArray(parsed)) ? parsed.version : 0;
-      const rawList = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.entries) ? parsed.entries : []);
-      entries = rawList.map(normalizeEntry).filter(Boolean);
-      if(version !== ENTRY_SCHEMA_VERSION) needsResave = true;
-    } else {
-      entries = [];
-    }
-  }catch(e){ entries = []; }
-  if(needsResave) await saveEntries();
-  await loadAuth();
-  await loadGalleryPhotos();
-  await loadTheme();
-  renderAll();
+// Real-time sync: every device/tab gets pushed updates the moment anyone
+// writes, so the catalog stays in sync without polling or manual refresh.
+function subscribeEntries(){
+  entriesCollection.onSnapshot((snapshot) => {
+    entries = snapshot.docs
+      .map(doc => normalizeEntry({ id: doc.id, ...doc.data() }))
+      .filter(Boolean);
+    renderAll();
+  }, (err) => {
+    console.error(err);
+    showToast('Could not load catalog — check your connection');
+  });
 }
 
-async function saveEntries(){
+function loadTheme(){
   try{
-    await storageAdapter.set(STORAGE_KEY, JSON.stringify({ version: ENTRY_SCHEMA_VERSION, entries }));
-  }catch(e){ console.error(e); showToast('Could not save — try again'); }
-}
-
-async function loadGalleryPhotos(){
-  try{
-    const list = await storageAdapter.list(GALLERY_PREFIX);
-    const keys = (list && list.keys) ? list.keys : [];
-    const results = await Promise.all(keys.map(async k=>{
-      try{
-        const r = await storageAdapter.get(k);
-        return r && r.value ? JSON.parse(r.value) : null;
-      }catch(e){ return null; }
-    }));
-    galleryPhotos = results.filter(Boolean).sort((a,b)=> (a.dateAdded||'').localeCompare(b.dateAdded||''));
-  }catch(e){ galleryPhotos = []; }
-}
-
-async function addGalleryPhoto(dataUrl, name){
-  const photo = { id: uid(), dataUrl, name: name||'', dateAdded: new Date().toISOString() };
-  try{
-    await storageAdapter.set(GALLERY_PREFIX + photo.id, JSON.stringify(photo));
-    galleryPhotos.push(photo);
-  }catch(e){ console.error(e); showToast('Could not save photo — try again'); }
-}
-
-async function loadTheme(){
-  try{
-    const res = await storageAdapter.get(THEME_KEY);
-    const theme = res && res.value ? res.value : 'light';
+    const theme = localStorage.getItem(THEME_KEY) || 'light';
     applyTheme(theme);
   }catch(e){ applyTheme('light'); }
 }
@@ -670,11 +614,11 @@ function applyTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
 }
 
-async function toggleTheme(){
+function toggleTheme(){
   const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
   const next = current === 'dark' ? 'light' : 'dark';
   applyTheme(next);
-  try{ await storageAdapter.set(THEME_KEY, next); }catch(e){ console.error(e); }
+  try{ localStorage.setItem(THEME_KEY, next); }catch(e){ console.error(e); }
 }
 
 function showToast(msg){
@@ -689,15 +633,13 @@ function renderAll(){
   updateNavActive();
   if(editing){ renderEditor(editing.category, editing.id); return; }
   if(currentPage === 'home') renderHome();
-  else if(currentPage === 'Gallery') renderGallery();
   else renderCategory(currentPage);
 }
 
 function updateCounts(){
-  ['Plants','Algae','Fish','Insects'].forEach(cat=>{
+  ['Plants','Algae','Fish','Insects','Gallery'].forEach(cat=>{
     document.getElementById('count-'+cat).textContent = entries.filter(e=>e.category===cat).length;
   });
-  document.getElementById('count-Gallery').textContent = galleryPhotos.length;
   document.getElementById('sidebarFoot').textContent = `${entries.length} species logged`;
 }
 
@@ -761,7 +703,7 @@ function renderCategory(cat){
           <div class="sub-count">${list.length} logged</div>
         </div>
       </div>
-      ${isAuthorized() ? `<button class="add-btn" id="addBtn">+ Log ${cat === 'Fish' ? 'a fish' : cat === 'Algae' ? 'algae' : 'a ' + catSingular[cat]}</button>` : ''}
+      ${isAuthorized() ? `<button class="add-btn" id="addBtn">+ ${cat === 'Gallery' ? 'Add a gallery post' : 'Log ' + (cat === 'Fish' ? 'a fish' : cat === 'Algae' ? 'algae' : 'a ' + catSingular[cat])}</button>` : ''}
     </div>
     <div class="grid" id="catGrid"></div>
   `;
@@ -793,75 +735,6 @@ function renderCategory(cat){
   }
   grid.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
 }
-
-function renderGallery(){
-  const main = document.getElementById('main');
-  main.setAttribute('data-page','Gallery');
-  const search = document.getElementById('searchInput').value.trim().toLowerCase();
-  let list = [...galleryPhotos].reverse();
-  if(search){
-    list = list.filter(p => (p.name||'').toLowerCase().includes(search));
-  }
-
-  main.innerHTML = `
-    <div class="cat-header">
-      <div class="heading">
-        <div><h2>Gallery</h2><div class="sub-count">${list.length} photos</div></div>
-      </div>
-      ${isAuthorized() ? `<button class="gallery-add-btn" id="addPhotoBtn">+ Add photos</button>` : ''}
-    </div>
-    <div class="gallery-grid" id="galleryGrid"></div>
-  `;
-
-  const grid = document.getElementById('galleryGrid');
-  if(list.length === 0){
-    grid.innerHTML = `<div class="empty">
-      <h3>No photos yet</h3>
-      <p>Add photos from your files — they're kept separate from species logs.</p>
-    </div>`;
-  } else {
-    grid.innerHTML = list.map(p => `
-      <div class="g-tile" data-id="${p.id}">
-        <img src="${p.dataUrl}" alt="${escapeHtml(p.name)}">
-        ${p.name ? `<div class="g-label"><div>${escapeHtml(p.name)}</div></div>` : ''}
-      </div>
-    `).join('');
-  }
-
-  if (isAuthorized()) {
-    document.getElementById('addPhotoBtn').addEventListener('click', ()=>{
-      document.getElementById('galleryFileInput').click();
-    });
-  }
-
-  grid.querySelectorAll('.g-tile').forEach(tile=>{
-    tile.addEventListener('click', ()=>{
-      const p = galleryPhotos.find(x=>x.id===tile.dataset.id);
-      if(!p) return;
-      document.getElementById('lbImg').src = p.dataUrl;
-      document.getElementById('lbCaption').textContent = p.name || '';
-      document.getElementById('lightbox').hidden = false;
-    });
-  });
-}
-
-document.getElementById('galleryFileInput').addEventListener('change', async (ev)=>{
-  if(!isAuthorized()) return;
-  const files = Array.from(ev.target.files || []);
-  ev.target.value = '';
-  for(const file of files){
-    if(!file.type.startsWith('image/')) continue;
-    const dataUrl = await new Promise((resolve, reject)=>{
-      const reader = new FileReader();
-      reader.onload = ()=> resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    }).catch(()=> null);
-    if(dataUrl) await addGalleryPhoto(dataUrl, file.name.replace(/\.[^/.]+$/, ''));
-  }
-  if(currentPage === 'Gallery') renderAll();
-  showToast(files.length > 1 ? 'Photos added' : 'Photo added');
-});
 
 document.getElementById('lbClose').addEventListener('click', ()=> document.getElementById('lightbox').hidden = true);
 document.getElementById('lightbox').addEventListener('click', (ev)=>{ if(ev.target.id==='lightbox') document.getElementById('lightbox').hidden = true; });
@@ -947,9 +820,13 @@ function closeDeleteConfirm(){
 
 async function deleteEntry(id){
   if(!isAuthorized()) return;
-  entries = entries.filter(x=>x.id!==id);
-  await saveEntries();
-  renderAll();
+  try{
+    await entriesCollection.doc(id).delete();
+  }catch(e){
+    console.error(e);
+    showToast('Could not remove — try again');
+    return;
+  }
   showToast('Removed');
 }
 
@@ -986,8 +863,8 @@ function renderEditor(cat, id){
     </div>
 
     <div class="doc-page">
-      <div class="doc-title" id="docName" contenteditable="true" data-placeholder="Name">${existing ? escapeHtml(existing.name) : ''}</div>
-      <div class="doc-species" id="docSpecies" contenteditable="true" data-placeholder="Species (scientific name)">${existing ? escapeHtml(existing.species||'') : ''}</div>
+      <div class="doc-title" id="docName" contenteditable="true" data-placeholder="${cat === 'Gallery' ? 'Title' : 'Name'}">${existing ? escapeHtml(existing.name) : ''}</div>
+      ${NO_SPECIES_CATS.includes(cat) ? '' : `<div class="doc-species" id="docSpecies" contenteditable="true" data-placeholder="Species (scientific name)">${existing ? escapeHtml(existing.species||'') : ''}</div>`}
 
       <div class="doc-fields">
         <div class="doc-field">
@@ -1003,7 +880,7 @@ function renderEditor(cat, id){
         <input type="file" id="docPhotoInput" accept="image/*" multiple hidden>
       </div>
 
-      <div class="doc-notes" id="docNotes" contenteditable="true" data-placeholder="Write your notes here — care details, tank mates, growth, behavior…">${existing ? (existing.notes||'') : ''}</div>
+      <div class="doc-notes" id="docNotes" contenteditable="true" data-placeholder="${cat === 'Gallery' ? 'Write a description…' : 'Write your notes here — care details, tank mates, growth, behavior…'}">${existing ? (existing.notes||'') : ''}</div>
     </div>
   `;
 
@@ -1076,14 +953,17 @@ function renderEditor(cat, id){
   });
 
   document.getElementById('saveEditBtn').addEventListener('click', async ()=>{
+    if(!isAuthorized()){ showToast('You need to be logged in to log entries'); return; }
     const name = document.getElementById('docName').textContent.trim();
     if(!name){ document.getElementById('docName').focus(); return; }
+
+    const docSpeciesEl = document.getElementById('docSpecies');
 
     const data = {
       id: existing ? existing.id : uid(),
       category: cat,
       name: name,
-      species: document.getElementById('docSpecies').textContent.trim(),
+      species: docSpeciesEl ? docSpeciesEl.textContent.trim() : '',
       dateAdded: document.getElementById('docDate').value,
       photos: editingPhotos,
       thumbnail: editingThumbnail || null,
@@ -1091,10 +971,15 @@ function renderEditor(cat, id){
       createdAt: existing && existing.createdAt ? existing.createdAt : Date.now()
     };
 
-    if(existing) entries = entries.map(x=> x.id===existing.id ? data : x);
-    else entries.push(data);
+    const { id: entryId, ...docData } = data;
+    try{
+      await entriesCollection.doc(entryId).set(docData);
+    }catch(e){
+      console.error(e);
+      showToast('Could not save — try again');
+      return;
+    }
 
-    await saveEntries();
     editing = null;
     currentPage = cat;
     renderAll();
@@ -1274,7 +1159,8 @@ document.getElementById('searchInput').addEventListener('input', ()=>{
   if(currentPage !== 'home' && !editing) renderAll();
 });
 
-loadEntries();
+loadTheme();
+subscribeEntries();
 </script>
 
 </body>
