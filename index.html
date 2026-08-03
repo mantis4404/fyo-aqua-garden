@@ -4,13 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fyo Aqua Garden</title>
-<script>
-  // Apply theme immediately before rendering to prevent white screen flash
-  (function() {
-    var savedTheme = localStorage.getItem('fyo-theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  })();
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -53,8 +46,8 @@
 
   /* ---------- top bar ---------- */
   .topbar{
-    display:flex; align-items:center; gap:14px;
-    padding: 16px 30px; background: var(--panel);
+    display:flex; align-items:baseline; gap:14px;
+    padding: 22px 30px; background: var(--panel);
     border-bottom: 3px solid var(--dark-sep);
   }
   .topbar .brand{
@@ -64,14 +57,6 @@
   .topbar .brand:hover{ color: var(--plants); }
   .topbar .brand:focus-visible{ outline: 2px solid var(--plants); outline-offset:3px; border-radius:4px; }
   .topbar .spacer{ flex:1; }
-
-  .auth-btn{
-    all:unset; cursor:pointer; font-size:0.85rem; font-weight:600;
-    padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line);
-    background: var(--bg); color: var(--text);
-  }
-  .auth-btn:hover{ border-color: var(--muted); }
-
   .theme-toggle{
     all:unset; cursor:pointer; display:flex; align-items:center; gap:8px;
     padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line);
@@ -108,6 +93,7 @@
   nav.cat-list button:hover{ background: var(--bg); }
   nav.cat-list button:focus-visible{ outline: 2px solid var(--plants); outline-offset: 2px; }
 
+  /* Set active category color for ALL categories to Plant green style */
   nav.cat-list button[data-active="true"]{ background: var(--plants-t); color:#365a41; font-weight:600; }
 
   .sidebar-foot{
@@ -140,7 +126,7 @@
   .add-btn, .gallery-add-btn{
     all:unset; cursor:pointer; padding: 10px 18px; border-radius: 10px;
     font-weight:700; font-size:0.88rem; transition: transform 0.12s ease;
-    background: var(--plants); color:#fff; display:none;
+    background: var(--plants); color:#fff;
   }
   .add-btn:hover, .gallery-add-btn:hover{ transform: translateY(-1px); }
   .add-btn:focus-visible, .gallery-add-btn:focus-visible{ outline:2px solid var(--text); outline-offset:2px; }
@@ -150,7 +136,7 @@
   .card{
     background: var(--panel); border:1px solid var(--line); border-radius: var(--radius);
     padding: 0; overflow:hidden; display:flex; flex-direction:column;
-    transition: box-shadow 0.12s ease; cursor:pointer;
+    transition: box-shadow 0.12s ease;
   }
   .card:hover{ box-shadow: 0 0 0 1px var(--muted), 0 2px 6px rgba(43,58,51,0.18); }
 
@@ -197,7 +183,7 @@
     all:unset; position:absolute; top:24px; right:30px; color:#fff; cursor:pointer; font-size:1.6rem;
   }
 
-  /* ---------- modals ---------- */
+  /* ---------- species detail modal ---------- */
   .modal-overlay{
     position: fixed; inset:0; background: rgba(20,26,22,0.72); z-index:40;
     display:flex; align-items:flex-start; justify-content:center; padding: 40px 20px;
@@ -219,7 +205,7 @@
   .modal-panel .doc-title{ padding-right: 40px; }
   .modal-image{ width:100%; max-height:320px; object-fit:cover; border-radius:10px; margin-bottom:22px; display:block; }
 
-  /* ---------- confirm & login modal ---------- */
+  /* ---------- confirm modal ---------- */
   .confirm-panel{
     position:relative; background: var(--panel); border-radius: var(--radius);
     max-width: 380px; width:100%; padding: 28px 28px 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);
@@ -233,8 +219,6 @@
   }
   .btn-danger-filled:hover{ background:#a83a30; }
   .btn-danger-filled:focus-visible{ outline:2px solid #c0453a; outline-offset:2px; }
-
-  .login-input{ width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 0.9rem; margin-bottom: 12px; }
 
   /* ---------- empty state ---------- */
   .empty{
@@ -356,7 +340,6 @@
 <div class="topbar">
   <button class="brand" id="brandBtn">Fyo Aqua Garden</button>
   <div class="spacer"></div>
-  <button class="auth-btn" id="authBtn">Login</button>
   <button class="theme-toggle" id="themeToggle" aria-label="Toggle light and dark mode" title="Toggle light and dark mode">
     <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
   </button>
@@ -364,7 +347,7 @@
 
 <div class="shell">
   <aside class="sidebar">
-    <input class="search-box" id="searchInput" type="text" name="species_search_query" placeholder="Search species…" autocomplete="off" aria-autocomplete="none">
+    <input class="search-box" id="searchInput" type="search" name="q" placeholder="Search species…" autocomplete="chrome-off" aria-autocomplete="none" role="searchbox">
 
     <nav class="cat-list" id="catList">
       <button data-cat="Fish">
@@ -398,19 +381,6 @@
 
 <div class="modal-overlay" id="speciesModal" hidden>
   <div class="modal-panel" id="speciesModalPanel"></div>
-</div>
-
-<div class="modal-overlay" id="loginModal" hidden>
-  <div class="confirm-panel">
-    <h3>Admin Login</h3>
-    <p style="font-size:0.84rem; color:var(--muted); margin-bottom:14px;">Sign in to log and manage entries.</p>
-    <input type="email" id="loginEmail" class="login-input" placeholder="Email">
-    <input type="password" id="loginPassword" class="login-input" placeholder="Password">
-    <div class="confirm-actions">
-      <button class="btn-secondary" id="loginCancelBtn">Cancel</button>
-      <button class="btn-primary" id="loginSubmitBtn" style="background:var(--plants)">Sign In</button>
-    </div>
-  </div>
 </div>
 
 <div class="modal-overlay" id="confirmModal" hidden>
@@ -467,250 +437,504 @@
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<script>
+const STORAGE_KEY = 'catalog:entries';
+const GALLERY_PREFIX = 'gallery:';
+const THEME_KEY = 'catalog:theme';
+let entries = [];
+let galleryPhotos = []; // [{id, dataUrl, name, dateAdded}], independent of species logs
+let currentPage = 'home'; // 'home' | 'Fish' | 'Plants' | 'Algae' | 'Insects' | 'Gallery'
+let editing = null; // { id, category } or null when not editing
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCzBvlxbwP5SZJhEJ9550-Kru7eVmj_9xU",
-  authDomain: "fyo-aqua-garden.firebaseapp.com",
-  projectId: "fyo-aqua-garden",
-  storageBucket: "fyo-aqua-garden.firebasestorage.app",
-  messagingSenderId: "593835864414",
-  appId: "1:593835864414:web:8abac971960e1b98c4dfcf",
-  measurementId: "G-K2ZT95CHDZ"
+// All category colors now map to Plant green (#5e9b6e)
+const catColor = { Plants:'#5e9b6e', Algae:'#5e9b6e', Fish:'#5e9b6e', Insects:'#5e9b6e', Gallery:'#5e9b6e' };
+const catLabel = { Plants:'Plants', Algae:'Algae', Fish:'Fish', Insects:'Invertebrates', Gallery:'Gallery' };
+const catSingular = { Plants:'plant', Algae:'algae', Fish:'fish', Insects:'invertebrate' };
+
+function uid(){ return 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ---------- storage adapter ---------- */
+const hasArtifactStorage = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+
+const storageAdapter = {
+  async get(key){
+    if(hasArtifactStorage){
+      try{ return await window.storage.get(key, false); }catch(e){ return null; }
+    }
+    try{
+      const raw = localStorage.getItem(key);
+      return raw === null ? null : { key, value: raw };
+    }catch(e){ return null; }
+  },
+  async set(key, value){
+    if(hasArtifactStorage){
+      try{ return await window.storage.set(key, value, false); }catch(e){ return null; }
+    }
+    try{ localStorage.setItem(key, value); return { key, value }; }catch(e){ return null; }
+  },
+  async delete(key){
+    if(hasArtifactStorage){
+      try{ return await window.storage.delete(key, false); }catch(e){ return null; }
+    }
+    try{ localStorage.removeItem(key); return { key, deleted:true }; }catch(e){ return null; }
+  },
+  async list(prefix){
+    if(hasArtifactStorage){
+      try{ return await window.storage.list(prefix, false); }catch(e){ return null; }
+    }
+    try{
+      const keys = [];
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(k && k.indexOf(prefix) === 0) keys.push(k);
+      }
+      return { keys };
+    }catch(e){ return null; }
+  }
 };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+/* ---------- entry data schema ---------- */
+const ENTRY_SCHEMA_VERSION = 1;
 
-  let entries = [];
-  let galleryPhotos = [];
-  let currentPage = 'home'; 
-  let editing = null;
-  let currentUser = null;
+function normalizeEntry(raw){
+  if(!raw || typeof raw !== 'object') return null;
+  return {
+    id: raw.id || uid(),
+    category: raw.category || 'Fish',
+    name: raw.name || '',
+    species: raw.species || '',
+    dateAdded: raw.dateAdded || '',
+    photos: Array.isArray(raw.photos) ? raw.photos : (raw.imageUrl ? [raw.imageUrl] : []),
+    thumbnail: raw.thumbnail || null,
+    notes: raw.notes || '',
+    createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now()
+  };
+}
 
-  const catLabel = { Plants:'Plants', Algae:'Algae', Fish:'Fish', Insects:'Invertebrates', Gallery:'Gallery' };
-  const catSingular = { Plants:'plant', Algae:'algae', Fish:'fish', Insects:'invertebrate' };
-
-  function uid(){ return 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
-  function escapeHtml(str){ return String(str||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-  function showToast(msg){
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(()=> t.classList.remove('show'), 1700);
-  }
-
-  // Authentication Setup
-  onAuthStateChanged(auth, (user) => {
-    currentUser = user;
-    document.getElementById('authBtn').textContent = user ? 'Logout' : 'Login';
-    renderAll();
-  });
-
-  document.getElementById('authBtn').addEventListener('click', () => {
-    if (currentUser) {
-      signOut(auth);
-      showToast('Logged out');
+async function loadEntries(){
+  let needsResave = false;
+  try{
+    const res = await storageAdapter.get(STORAGE_KEY);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      const version = (parsed && !Array.isArray(parsed)) ? parsed.version : 0;
+      const rawList = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.entries) ? parsed.entries : []);
+      entries = rawList.map(normalizeEntry).filter(Boolean);
+      if(version !== ENTRY_SCHEMA_VERSION) needsResave = true;
     } else {
-      document.getElementById('loginModal').hidden = false;
+      entries = [];
     }
-  });
+  }catch(e){ entries = []; }
+  if(needsResave) await saveEntries();
+  await loadGalleryPhotos();
+  await loadTheme();
+  renderAll();
+}
 
-  document.getElementById('loginCancelBtn').addEventListener('click', () => {
-    document.getElementById('loginModal').hidden = true;
-  });
+async function saveEntries(){
+  try{
+    await storageAdapter.set(STORAGE_KEY, JSON.stringify({ version: ENTRY_SCHEMA_VERSION, entries }));
+  }catch(e){ console.error(e); showToast('Could not save — try again'); }
+}
 
-  document.getElementById('loginSubmitBtn').addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail').value;
-    const pass = document.getElementById('loginPassword').value;
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      document.getElementById('loginModal').hidden = true;
-      showToast('Signed in as admin');
-    } catch(err) {
-      alert('Login failed: ' + err.message);
-    }
-  });
+async function loadGalleryPhotos(){
+  try{
+    const list = await storageAdapter.list(GALLERY_PREFIX);
+    const keys = (list && list.keys) ? list.keys : [];
+    const results = await Promise.all(keys.map(async k=>{
+      try{
+        const r = await storageAdapter.get(k);
+        return r && r.value ? JSON.parse(r.value) : null;
+      }catch(e){ return null; }
+    }));
+    galleryPhotos = results.filter(Boolean).sort((a,b)=> (a.dateAdded||'').localeCompare(b.dateAdded||''));
+  }catch(e){ galleryPhotos = []; }
+}
 
-  // Real-Time Firebase Sync
-  onSnapshot(collection(db, "entries"), (snapshot) => {
-    entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderAll();
-  });
+async function addGalleryPhoto(dataUrl, name){
+  const photo = { id: uid(), dataUrl, name: name||'', dateAdded: new Date().toISOString() };
+  try{
+    await storageAdapter.set(GALLERY_PREFIX + photo.id, JSON.stringify(photo));
+    galleryPhotos.push(photo);
+  }catch(e){ console.error(e); showToast('Could not save photo — try again'); }
+}
 
-  onSnapshot(collection(db, "gallery"), (snapshot) => {
-    galleryPhotos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-                                 .sort((a,b)=> (a.dateAdded||'').localeCompare(b.dateAdded||''));
-    renderAll();
-  });
+async function loadTheme(){
+  try{
+    const res = await storageAdapter.get(THEME_KEY);
+    const theme = res && res.value ? res.value : 'light';
+    applyTheme(theme);
+  }catch(e){ applyTheme('light'); }
+}
 
-  function renderAll(){
-    updateCounts();
-    updateNavActive();
-    if(editing){ renderEditor(editing.category, editing.id); return; }
-    if(currentPage === 'home') renderHome();
-    else if(currentPage === 'Gallery') renderGallery();
-    else renderCategory(currentPage);
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
+async function toggleTheme(){
+  const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try{ await storageAdapter.set(THEME_KEY, next); }catch(e){ console.error(e); }
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 1700);
+}
+
+function renderAll(){
+  updateCounts();
+  updateNavActive();
+  if(editing){ renderEditor(editing.category, editing.id); return; }
+  if(currentPage === 'home') renderHome();
+  else if(currentPage === 'Gallery') renderGallery();
+  else renderCategory(currentPage);
+}
+
+function updateCounts(){
+  ['Plants','Algae','Fish','Insects'].forEach(cat=>{
+    document.getElementById('count-'+cat).textContent = entries.filter(e=>e.category===cat).length;
+  });
+  document.getElementById('count-Gallery').textContent = galleryPhotos.length;
+  document.getElementById('sidebarFoot').textContent = `${entries.length} species logged`;
+}
+
+function updateNavActive(){
+  document.querySelectorAll('#catList button').forEach(btn=>{
+    btn.dataset.active = (!editing && btn.dataset.cat === currentPage) ? 'true' : 'false';
+  });
+}
+
+function renderHome(){
+  const main = document.getElementById('main');
+  main.removeAttribute('data-page');
+  const recent = [...entries].sort((a,b)=> (b.createdAt||0) - (a.createdAt||0)).slice(0,10);
+
+  main.innerHTML = `
+    <div class="home-hero">
+      <h2>Welcome to the Fyo Aqua Garden</h2>
+      <p>A catalog of what lives in your freshwater aquarium</p>
+    </div>
+    ${entries.length ? `
+      <div class="home-recent">
+        <h3>Most recent logs</h3>
+        <div class="recent-strip" id="recentStrip"></div>
+      </div>
+    ` : ''}
+  `;
+
+  if(entries.length){
+    const strip = document.getElementById('recentStrip');
+    strip.innerHTML = recent.map(e => {
+      const thumbSrc = e.thumbnail || (e.photos && e.photos.length ? e.photos[0] : e.imageUrl);
+      const fit = e.thumbnail ? 'cover' : 'contain';
+      return `
+      <div class="card" data-view="${e.id}">
+        ${thumbSrc ? `<img class="thumb" style="object-fit:${fit};" src="${thumbSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
+        <div class="card-body">
+          <div class="name">${escapeHtml(e.name)}</div>
+          ${e.species ? `<div class="species">${escapeHtml(e.species)}</div>` : ''}
+        </div>
+      </div>
+    `;
+    }).join('');
+    strip.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
+  }
+}
+
+function renderCategory(cat){
+  const main = document.getElementById('main');
+  main.setAttribute('data-page', cat);
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  let list = entries.filter(e => e.category === cat);
+  if(search){
+    list = list.filter(e => (e.name||'').toLowerCase().includes(search) || (e.species||'').toLowerCase().includes(search));
   }
 
-  function updateCounts(){
-    ['Plants','Algae','Fish','Insects'].forEach(cat=>{
-      const countEl = document.getElementById('count-'+cat);
-      if(countEl) countEl.textContent = entries.filter(e=>e.category===cat).length;
+  main.innerHTML = `
+    <div class="cat-header">
+      <div class="heading">
+        <div>
+          <h2>${catLabel[cat]}</h2>
+          <div class="sub-count">${list.length} logged</div>
+        </div>
+      </div>
+      <button class="add-btn" id="addBtn">+ Log ${cat === 'Fish' ? 'a fish' : cat === 'Algae' ? 'algae' : 'a ' + catSingular[cat]}</button>
+    </div>
+    <div class="grid" id="catGrid"></div>
+  `;
+
+  const grid = document.getElementById('catGrid');
+  if(list.length === 0){
+    grid.innerHTML = `<div class="empty">
+      <h3>${entries.some(e=>e.category===cat) ? 'No matches' : 'Nothing logged yet'}</h3>
+      <p>${entries.some(e=>e.category===cat) ? 'Try a different search.' : `Add your first ${cat === 'Algae' ? 'algae entry' : catSingular[cat]} to start the catalog.`}</p>
+    </div>`;
+  } else {
+    grid.innerHTML = list.map(e => {
+      const thumbSrc = e.thumbnail || (e.photos && e.photos.length ? e.photos[0] : e.imageUrl);
+      const fit = e.thumbnail ? 'cover' : 'contain';
+      return `
+      <div class="card" data-view="${e.id}">
+        ${thumbSrc ? `<img class="thumb" style="object-fit:${fit};" src="${thumbSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
+        <div class="card-body">
+          <div class="name">${escapeHtml(e.name)}</div>
+          ${e.species ? `<div class="species">${escapeHtml(e.species)}</div>` : ''}
+        </div>
+      </div>
+    `;
+    }).join('');
+  }
+
+  document.getElementById('addBtn').addEventListener('click', ()=> openEditor(null, cat));
+  grid.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
+}
+
+function renderGallery(){
+  const main = document.getElementById('main');
+  main.setAttribute('data-page','Gallery');
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  let list = [...galleryPhotos].reverse();
+  if(search){
+    list = list.filter(p => (p.name||'').toLowerCase().includes(search));
+  }
+
+  main.innerHTML = `
+    <div class="cat-header">
+      <div class="heading">
+        <div><h2>Gallery</h2><div class="sub-count">${list.length} photos</div></div>
+      </div>
+      <button class="gallery-add-btn" id="addPhotoBtn">+ Add photos</button>
+    </div>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  `;
+
+  const grid = document.getElementById('galleryGrid');
+  if(list.length === 0){
+    grid.innerHTML = `<div class="empty">
+      <h3>No photos yet</h3>
+      <p>Add photos from your files — they're kept separate from species logs.</p>
+    </div>`;
+  } else {
+    grid.innerHTML = list.map(p => `
+      <div class="g-tile" data-id="${p.id}">
+        <img src="${p.dataUrl}" alt="${escapeHtml(p.name)}">
+        ${p.name ? `<div class="g-label"><div>${escapeHtml(p.name)}</div></div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('addPhotoBtn').addEventListener('click', ()=>{
+    document.getElementById('galleryFileInput').click();
+  });
+
+  grid.querySelectorAll('.g-tile').forEach(tile=>{
+    tile.addEventListener('click', ()=>{
+      const p = galleryPhotos.find(x=>x.id===tile.dataset.id);
+      if(!p) return;
+      document.getElementById('lbImg').src = p.dataUrl;
+      document.getElementById('lbCaption').textContent = p.name || '';
+      document.getElementById('lightbox').hidden = false;
     });
-    const galCountEl = document.getElementById('count-Gallery');
-    if(galCountEl) galCountEl.textContent = galleryPhotos.length;
-    document.getElementById('sidebarFoot').textContent = `${entries.length} species logged`;
+  });
+}
+
+document.getElementById('galleryFileInput').addEventListener('change', async (ev)=>{
+  const files = Array.from(ev.target.files || []);
+  ev.target.value = '';
+  for(const file of files){
+    if(!file.type.startsWith('image/')) continue;
+    const dataUrl = await new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    }).catch(()=> null);
+    if(dataUrl) await addGalleryPhoto(dataUrl, file.name.replace(/\.[^/.]+$/, ''));
   }
+  if(currentPage === 'Gallery') renderAll();
+  showToast(files.length > 1 ? 'Photos added' : 'Photo added');
+});
 
-  function updateNavActive(){
-    document.querySelectorAll('#catList button').forEach(btn=>{
-      btn.dataset.active = (!editing && btn.dataset.cat === currentPage) ? 'true' : 'false';
-    });
-  }
+document.getElementById('lbClose').addEventListener('click', ()=> document.getElementById('lightbox').hidden = true);
+document.getElementById('lightbox').addEventListener('click', (ev)=>{ if(ev.target.id==='lightbox') document.getElementById('lightbox').hidden = true; });
 
-  function renderHome(){
-    const main = document.getElementById('main');
-    main.removeAttribute('data-page');
-    const recent = [...entries].sort((a,b)=> (b.createdAt||0) - (a.createdAt||0)).slice(0,10);
-
-    main.innerHTML = `
-      <div class="home-hero">
-        <h2>Welcome to the Fyo Aqua Garden</h2>
-        <p>A catalog of what lives in your freshwater aquarium</p>
+/* ---------- species detail modal ---------- */
+function openSpeciesDetail(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  const photos = (e.photos && e.photos.length) ? e.photos : (e.imageUrl ? [e.imageUrl] : []);
+  const heroSrc = e.thumbnail || photos[0];
+  const panel = document.getElementById('speciesModalPanel');
+  panel.innerHTML = `
+    <button class="modal-close" id="speciesModalClose" aria-label="Close">&times;</button>
+    ${heroSrc ? `<img class="modal-image" src="${heroSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
+    <div class="doc-title">${escapeHtml(e.name)}</div>
+    ${e.species ? `<div class="doc-species">${escapeHtml(e.species)}</div>` : ''}
+    ${e.dateAdded ? `<div class="meta-line" style="margin-bottom:20px; color:var(--muted);">Logged since ${escapeHtml(e.dateAdded)}</div>` : ''}
+    ${e.notes ? `<div class="notes" style="border-top:1px solid var(--line-2); padding-top:14px; padding-bottom:14px;">${e.notes}</div>` : ''}
+    ${photos.length ? `
+      <div class="entry-gallery">
+        <div class="entry-gallery-label">Gallery</div>
+        <div class="entry-gallery-grid" id="entryGalleryGrid">
+          ${photos.map((src, i) => `<div class="entry-gallery-tile" data-idx="${i}"><img src="${src}" alt=""></div>`).join('')}
+        </div>
       </div>
-      ${entries.length ? `
-        <div class="home-recent">
-          <h3>Most recent logs</h3>
-          <div class="recent-strip" id="recentStrip"></div>
-        </div>
-      ` : ''}
-    `;
-
-    if(entries.length){
-      const strip = document.getElementById('recentStrip');
-      strip.innerHTML = recent.map(e => {
-        const thumbSrc = e.thumbnail || (e.photos && e.photos.length ? e.photos[0] : e.imageUrl);
-        const fit = e.thumbnail ? 'cover' : 'contain';
-        return `
-        <div class="card" data-view="${e.id}">
-          ${thumbSrc ? `<img class="thumb" style="object-fit:${fit};" src="${thumbSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
-          <div class="card-body">
-            <div class="name">${escapeHtml(e.name)}</div>
-            ${e.species ? `<div class="species">${escapeHtml(e.species)}</div>` : ''}
-          </div>
-        </div>
-      `;
-      }).join('');
-      strip.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
-    }
-  }
-
-  function renderCategory(cat){
-    const main = document.getElementById('main');
-    main.setAttribute('data-page', cat);
-    const search = document.getElementById('searchInput').value.trim().toLowerCase();
-    let list = entries.filter(e => e.category === cat);
-    if(search){
-      list = list.filter(e => (e.name||'').toLowerCase().includes(search) || (e.species||'').toLowerCase().includes(search));
-    }
-
-    main.innerHTML = `
-      <div class="cat-header">
-        <div class="heading">
-          <div>
-            <h2>${catLabel[cat]}</h2>
-            <div class="sub-count">${list.length} logged</div>
-          </div>
-        </div>
-        ${currentUser ? `<button class="add-btn" id="addBtn" style="display:inline-block;">+ Log ${cat === 'Fish' ? 'a fish' : cat === 'Algae' ? 'algae' : 'a ' + catSingular[cat]}</button>` : ''}
-      </div>
-      <div class="grid" id="catGrid"></div>
-    `;
-
-    const grid = document.getElementById('catGrid');
-    if(list.length === 0){
-      grid.innerHTML = `<div class="empty">
-        <h3>${entries.some(e=>e.category===cat) ? 'No matches' : 'Nothing logged yet'}</h3>
-        <p>${entries.some(e=>e.category===cat) ? 'Try a different search.' : `Add your first ${cat === 'Algae' ? 'algae entry' : catSingular[cat]} to start the catalog.`}</p>
-      </div>`;
-    } else {
-      grid.innerHTML = list.map(e => {
-        const thumbSrc = e.thumbnail || (e.photos && e.photos.length ? e.photos[0] : e.imageUrl);
-        const fit = e.thumbnail ? 'cover' : 'contain';
-        return `
-        <div class="card" data-view="${e.id}">
-          ${thumbSrc ? `<img class="thumb" style="object-fit:${fit};" src="${thumbSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
-          <div class="card-body">
-            <div class="name">${escapeHtml(e.name)}</div>
-            ${e.species ? `<div class="species">${escapeHtml(e.species)}</div>` : ''}
-          </div>
-        </div>
-      `;
-      }).join('');
-    }
-
-    const addBtn = document.getElementById('addBtn');
-    if(addBtn) addBtn.addEventListener('click', ()=> openEditor(null, cat));
-    grid.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
-  }
-
-  function renderGallery(){
-    const main = document.getElementById('main');
-    main.setAttribute('data-page','Gallery');
-    const search = document.getElementById('searchInput').value.trim().toLowerCase();
-    let list = [...galleryPhotos].reverse();
-    if(search){
-      list = list.filter(p => (p.name||'').toLowerCase().includes(search));
-    }
-
-    main.innerHTML = `
-      <div class="cat-header">
-        <div class="heading">
-          <div><h2>Gallery</h2><div class="sub-count">${list.length} photos</div></div>
-        </div>
-        ${currentUser ? `<button class="gallery-add-btn" id="addPhotoBtn" style="display:inline-block;">+ Add photos</button>` : ''}
-      </div>
-      <div class="gallery-grid" id="galleryGrid"></div>
-    `;
-
-    const grid = document.getElementById('galleryGrid');
-    if(list.length === 0){
-      grid.innerHTML = `<div class="empty">
-        <h3>No photos yet</h3>
-        <p>Add photos from your files — they're kept separate from species logs.</p>
-      </div>`;
-    } else {
-      grid.innerHTML = list.map(p => `
-        <div class="g-tile" data-id="${p.id}">
-          <img src="${p.dataUrl}" alt="${escapeHtml(p.name)}">
-          ${p.name ? `<div class="g-label"><div>${escapeHtml(p.name)}</div></div>` : ''}
-        </div>
-      `).join('');
-    }
-
-    const addPhotoBtn = document.getElementById('addPhotoBtn');
-    if(addPhotoBtn){
-      addPhotoBtn.addEventListener('click', ()=> document.getElementById('galleryFileInput').click());
-    }
-
-    grid.querySelectorAll('.g-tile').forEach(tile=>{
+    ` : ''}
+    <div class="card-actions" style="border-top:1px solid var(--line-2); padding-top:16px; margin-top:20px;">
+      <button id="speciesModalEdit">Edit</button>
+      <button class="danger" id="speciesModalDelete">Remove</button>
+    </div>
+  `;
+  document.getElementById('speciesModalClose').addEventListener('click', closeSpeciesDetail);
+  document.getElementById('speciesModalEdit').addEventListener('click', ()=>{
+    closeSpeciesDetail();
+    openEditor(e.id, e.category);
+  });
+  document.getElementById('speciesModalDelete').addEventListener('click', ()=>{
+    closeSpeciesDetail();
+    openDeleteConfirm(e.id);
+  });
+  const galleryGrid = document.getElementById('entryGalleryGrid');
+  if(galleryGrid){
+    galleryGrid.querySelectorAll('.entry-gallery-tile').forEach(tile=>{
       tile.addEventListener('click', ()=>{
-        const p = galleryPhotos.find(x=>x.id===tile.dataset.id);
-        if(!p) return;
-        document.getElementById('lbImg').src = p.dataUrl;
-        document.getElementById('lbCaption').textContent = p.name || '';
+        const src = photos[Number(tile.dataset.idx)];
+        document.getElementById('lbImg').src = src;
+        document.getElementById('lbCaption').textContent = e.species ? `${e.name} — ${e.species}` : e.name;
         document.getElementById('lightbox').hidden = false;
       });
     });
   }
+  document.getElementById('speciesModal').hidden = false;
+}
 
-  document.getElementById('galleryFileInput').addEventListener('change', async (ev)=>{
+function closeSpeciesDetail(){
+  document.getElementById('speciesModal').hidden = true;
+}
+
+document.getElementById('speciesModal').addEventListener('click', (ev)=>{
+  if(ev.target.id === 'speciesModal') closeSpeciesDetail();
+});
+
+/* ---------- delete confirmation ---------- */
+let pendingDeleteId = null;
+
+function openDeleteConfirm(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  pendingDeleteId = id;
+  document.getElementById('confirmModalText').textContent = `This will permanently remove "${e.name}" from your catalog.`;
+  document.getElementById('confirmModal').hidden = false;
+}
+
+function closeDeleteConfirm(){
+  pendingDeleteId = null;
+  document.getElementById('confirmModal').hidden = true;
+}
+
+async function deleteEntry(id){
+  entries = entries.filter(x=>x.id!==id);
+  await saveEntries();
+  renderAll();
+  showToast('Removed');
+}
+
+document.getElementById('confirmCancelBtn').addEventListener('click', closeDeleteConfirm);
+document.getElementById('confirmModal').addEventListener('click', (ev)=>{ if(ev.target.id==='confirmModal') closeDeleteConfirm(); });
+document.getElementById('confirmYesBtn').addEventListener('click', async ()=>{
+  const id = pendingDeleteId;
+  closeDeleteConfirm();
+  if(id) await deleteEntry(id);
+});
+
+/* ---------- document-style editor ---------- */
+function renderEditor(cat, id){
+  const main = document.getElementById('main');
+  main.setAttribute('data-page', cat);
+  const existing = id ? entries.find(x=>x.id===id) : null;
+
+  main.innerHTML = `
+    <div class="editor-toolbar">
+      <div class="fmt-group">
+        <button type="button" class="fmt-btn" data-cmd="bold"><b>B</b></button>
+        <button type="button" class="fmt-btn" data-cmd="italic"><i>I</i></button>
+        <button type="button" class="fmt-btn" data-cmd="underline"><u>U</u></button>
+        <button type="button" class="fmt-btn" data-cmd="insertUnorderedList">•≡</button>
+        <button type="button" class="fmt-btn" id="importTableBtn" title="Import table" aria-label="Import table">⊞</button>
+      </div>
+      <div class="spacer"></div>
+      <button type="button" class="btn-secondary" id="cancelEditBtn">Cancel</button>
+      <button type="button" class="btn-primary" id="saveEditBtn" style="background:var(--plants)">Save</button>
+    </div>
+
+    <div class="doc-page">
+      <div class="doc-title" id="docName" contenteditable="true" data-placeholder="Name">${existing ? escapeHtml(existing.name) : ''}</div>
+      <div class="doc-species" id="docSpecies" contenteditable="true" data-placeholder="Species (scientific name)">${existing ? escapeHtml(existing.species||'') : ''}</div>
+
+      <div class="doc-fields">
+        <div class="doc-field">
+          <label for="docDate">Date added</label>
+          <input id="docDate" type="date" value="${existing ? existing.dateAdded||'' : ''}">
+        </div>
+      </div>
+
+      <div class="doc-photos-row">
+        <label>Photos</label>
+        <div class="doc-photos-grid" id="docPhotosGrid"></div>
+        <button type="button" class="doc-add-photos-btn" id="docAddPhotosBtn">+ Add photos from files</button>
+        <input type="file" id="docPhotoInput" accept="image/*" multiple hidden>
+      </div>
+
+      <div class="doc-notes" id="docNotes" contenteditable="true" data-placeholder="Write your notes here — care details, tank mates, growth, behavior…">${existing ? (existing.notes||'') : ''}</div>
+    </div>
+  `;
+
+  main.querySelectorAll('.fmt-btn[data-cmd]').forEach(btn=>{
+    btn.addEventListener('mousedown', e=> e.preventDefault());
+    btn.addEventListener('click', ()=> document.execCommand(btn.dataset.cmd, false, null));
+  });
+
+  let editingPhotos = existing && existing.photos ? [...existing.photos] : (existing && existing.imageUrl ? [existing.imageUrl] : []);
+  let editingThumbnail = existing && existing.thumbnail ? existing.thumbnail : null;
+
+  function renderDocPhotosGrid(){
+    const grid = document.getElementById('docPhotosGrid');
+    grid.innerHTML = editingPhotos.map((src, i) => `
+      <div class="doc-photo-thumb${editingThumbnail === src ? ' is-thumb' : ''}">
+        <img src="${src}" alt="">
+        <button type="button" class="doc-photo-crop" data-idx="${i}" title="Set as thumbnail">✂</button>
+        <button type="button" class="doc-photo-remove" data-idx="${i}" aria-label="Remove photo">&times;</button>
+        ${editingThumbnail === src ? `<span class="thumb-badge">Thumbnail</span>` : ''}
+      </div>
+    `).join('');
+    grid.querySelectorAll('.doc-photo-remove').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const removedSrc = editingPhotos[Number(btn.dataset.idx)];
+        editingPhotos.splice(Number(btn.dataset.idx), 1);
+        if(editingThumbnail === removedSrc) editingThumbnail = null;
+        renderDocPhotosGrid();
+      });
+    });
+    grid.querySelectorAll('.doc-photo-crop').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const idx = Number(btn.dataset.idx);
+        openThumbCrop(editingPhotos[idx], (dataUrl)=>{
+          editingThumbnail = dataUrl;
+          renderDocPhotosGrid();
+          showToast('Thumbnail updated');
+        });
+      });
+    });
+  }
+  renderDocPhotosGrid();
+
+  document.getElementById('docAddPhotosBtn').addEventListener('click', ()=> document.getElementById('docPhotoInput').click());
+  document.getElementById('docPhotoInput').addEventListener('change', async (ev)=>{
     const files = Array.from(ev.target.files || []);
     ev.target.value = '';
     for(const file of files){
@@ -721,421 +945,219 @@ const firebaseConfig = {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       }).catch(()=> null);
-
-      if(dataUrl) {
-        const photoId = uid();
-        await setDoc(doc(db, "gallery", photoId), {
-          id: photoId,
-          dataUrl: dataUrl,
-          name: file.name.replace(/\.[^/.]+$/, ''),
-          dateAdded: new Date().toISOString()
-        });
-      }
-    }
-    showToast(files.length > 1 ? 'Photos added' : 'Photo added');
-  });
-
-  document.getElementById('lbClose').addEventListener('click', ()=> document.getElementById('lightbox').hidden = true);
-  document.getElementById('lightbox').addEventListener('click', (ev)=>{ if(ev.target.id==='lightbox') document.getElementById('lightbox').hidden = true; });
-
-  /* ---------- species detail modal ---------- */
-  function openSpeciesDetail(id){
-    const e = entries.find(x=>x.id===id);
-    if(!e) return;
-    const photos = (e.photos && e.photos.length) ? e.photos : (e.imageUrl ? [e.imageUrl] : []);
-    const heroSrc = e.thumbnail || photos[0];
-    const panel = document.getElementById('speciesModalPanel');
-    panel.innerHTML = `
-      <button class="modal-close" id="speciesModalClose" aria-label="Close">&times;</button>
-      ${heroSrc ? `<img class="modal-image" src="${heroSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
-      <div class="doc-title">${escapeHtml(e.name)}</div>
-      ${e.species ? `<div class="doc-species">${escapeHtml(e.species)}</div>` : ''}
-      ${e.dateAdded ? `<div class="meta-line" style="margin-bottom:20px; color:var(--muted);">Logged since ${escapeHtml(e.dateAdded)}</div>` : ''}
-      ${e.notes ? `<div class="notes" style="border-top:1px solid var(--line-2); padding-top:14px; padding-bottom:14px;">${e.notes}</div>` : ''}
-      ${photos.length ? `
-        <div class="entry-gallery">
-          <div class="entry-gallery-label">Gallery</div>
-          <div class="entry-gallery-grid" id="entryGalleryGrid">
-            ${photos.map((src, i) => `<div class="entry-gallery-tile" data-idx="${i}"><img src="${src}" alt=""></div>`).join('')}
-          </div>
-        </div>
-      ` : ''}
-      ${currentUser ? `
-        <div class="card-actions" style="border-top:1px solid var(--line-2); padding-top:16px; margin-top:20px;">
-          <button id="speciesModalEdit">Edit</button>
-          <button class="danger" id="speciesModalDelete">Remove</button>
-        </div>
-      ` : ''}
-    `;
-    document.getElementById('speciesModalClose').addEventListener('click', closeSpeciesDetail);
-    
-    if (currentUser) {
-      document.getElementById('speciesModalEdit').addEventListener('click', ()=>{
-        closeSpeciesDetail();
-        openEditor(e.id, e.category);
-      });
-      document.getElementById('speciesModalDelete').addEventListener('click', ()=>{
-        closeSpeciesDetail();
-        openDeleteConfirm(e.id);
-      });
-    }
-
-    const galleryGrid = document.getElementById('entryGalleryGrid');
-    if(galleryGrid){
-      galleryGrid.querySelectorAll('.entry-gallery-tile').forEach(tile=>{
-        tile.addEventListener('click', ()=>{
-          const src = photos[Number(tile.dataset.idx)];
-          document.getElementById('lbImg').src = src;
-          document.getElementById('lbCaption').textContent = e.species ? `${e.name} — ${e.species}` : e.name;
-          document.getElementById('lightbox').hidden = false;
-        });
-      });
-    }
-    document.getElementById('speciesModal').hidden = false;
-  }
-
-  function closeSpeciesDetail(){ document.getElementById('speciesModal').hidden = true; }
-  document.getElementById('speciesModal').addEventListener('click', (ev)=>{ if(ev.target.id === 'speciesModal') closeSpeciesDetail(); });
-
-  /* ---------- delete confirmation ---------- */
-  let pendingDeleteId = null;
-
-  function openDeleteConfirm(id){
-    const e = entries.find(x=>x.id===id);
-    if(!e) return;
-    pendingDeleteId = id;
-    document.getElementById('confirmModalText').textContent = `This will permanently remove "${e.name}" from your catalog.`;
-    document.getElementById('confirmModal').hidden = false;
-  }
-
-  function closeDeleteConfirm(){
-    pendingDeleteId = null;
-    document.getElementById('confirmModal').hidden = true;
-  }
-
-  async function deleteEntry(id){
-    await deleteDoc(doc(db, "entries", id));
-    renderAll();
-    showToast('Removed');
-  }
-
-  document.getElementById('confirmCancelBtn').addEventListener('click', closeDeleteConfirm);
-  document.getElementById('confirmModal').addEventListener('click', (ev)=>{ if(ev.target.id==='confirmModal') closeDeleteConfirm(); });
-  document.getElementById('confirmYesBtn').addEventListener('click', async ()=>{
-    const id = pendingDeleteId;
-    closeDeleteConfirm();
-    if(id) await deleteEntry(id);
-  });
-
-  /* ---------- document-style editor ---------- */
-  function renderEditor(cat, id){
-    const main = document.getElementById('main');
-    main.setAttribute('data-page', cat);
-    const existing = id ? entries.find(x=>x.id===id) : null;
-
-    main.innerHTML = `
-      <div class="editor-toolbar">
-        <div class="fmt-group">
-          <button type="button" class="fmt-btn" data-cmd="bold"><b>B</b></button>
-          <button type="button" class="fmt-btn" data-cmd="italic"><i>I</i></button>
-          <button type="button" class="fmt-btn" data-cmd="underline"><u>U</u></button>
-          <button type="button" class="fmt-btn" data-cmd="insertUnorderedList">•≡</button>
-          <button type="button" class="fmt-btn" id="importTableBtn" title="Import table" aria-label="Import table">⊞</button>
-        </div>
-        <div class="spacer"></div>
-        <button type="button" class="btn-secondary" id="cancelEditBtn">Cancel</button>
-        <button type="button" class="btn-primary" id="saveEditBtn" style="background:var(--plants)">Save</button>
-      </div>
-
-      <div class="doc-page">
-        <div class="doc-title" id="docName" contenteditable="true" data-placeholder="Name">${existing ? escapeHtml(existing.name) : ''}</div>
-        <div class="doc-species" id="docSpecies" contenteditable="true" data-placeholder="Species (scientific name)">${existing ? escapeHtml(existing.species||'') : ''}</div>
-
-        <div class="doc-fields">
-          <div class="doc-field">
-            <label for="docDate">Date added</label>
-            <input id="docDate" type="date" value="${existing ? existing.dateAdded||'' : ''}">
-          </div>
-        </div>
-
-        <div class="doc-photos-row">
-          <label>Photos</label>
-          <div class="doc-photos-grid" id="docPhotosGrid"></div>
-          <button type="button" class="doc-add-photos-btn" id="docAddPhotosBtn">+ Add photos from files</button>
-          <input type="file" id="docPhotoInput" accept="image/*" multiple hidden>
-        </div>
-
-        <div class="doc-notes" id="docNotes" contenteditable="true" data-placeholder="Write your notes here — care details, tank mates, growth, behavior…">${existing ? (existing.notes||'') : ''}</div>
-      </div>
-    `;
-
-    main.querySelectorAll('.fmt-btn[data-cmd]').forEach(btn=>{
-      btn.addEventListener('mousedown', e=> e.preventDefault());
-      btn.addEventListener('click', ()=> document.execCommand(btn.dataset.cmd, false, null));
-    });
-
-    let editingPhotos = existing && existing.photos ? [...existing.photos] : (existing && existing.imageUrl ? [existing.imageUrl] : []);
-    let editingThumbnail = existing && existing.thumbnail ? existing.thumbnail : null;
-
-    function renderDocPhotosGrid(){
-      const grid = document.getElementById('docPhotosGrid');
-      grid.innerHTML = editingPhotos.map((src, i) => `
-        <div class="doc-photo-thumb${editingThumbnail === src ? ' is-thumb' : ''}">
-          <img src="${src}" alt="">
-          <button type="button" class="doc-photo-crop" data-idx="${i}" title="Set as thumbnail">✂</button>
-          <button type="button" class="doc-photo-remove" data-idx="${i}" aria-label="Remove photo">&times;</button>
-          ${editingThumbnail === src ? `<span class="thumb-badge">Thumbnail</span>` : ''}
-        </div>
-      `).join('');
-      grid.querySelectorAll('.doc-photo-remove').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const removedSrc = editingPhotos[Number(btn.dataset.idx)];
-          editingPhotos.splice(Number(btn.dataset.idx), 1);
-          if(editingThumbnail === removedSrc) editingThumbnail = null;
-          renderDocPhotosGrid();
-        });
-      });
-      grid.querySelectorAll('.doc-photo-crop').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const idx = Number(btn.dataset.idx);
-          openThumbCrop(editingPhotos[idx], (dataUrl)=>{
-            editingThumbnail = dataUrl;
-            renderDocPhotosGrid();
-            showToast('Thumbnail updated');
-          });
-        });
-      });
+      if(dataUrl) editingPhotos.push(dataUrl);
     }
     renderDocPhotosGrid();
+  });
 
-    document.getElementById('docAddPhotosBtn').addEventListener('click', ()=> document.getElementById('docPhotoInput').click());
-    document.getElementById('docPhotoInput').addEventListener('change', async (ev)=>{
-      const files = Array.from(ev.target.files || []);
-      ev.target.value = '';
-      for(const file of files){
-        if(!file.type.startsWith('image/')) continue;
-        const dataUrl = await new Promise((resolve, reject)=>{
-          const reader = new FileReader();
-          reader.onload = ()=> resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        }).catch(()=> null);
-        if(dataUrl) editingPhotos.push(dataUrl);
-      }
-      renderDocPhotosGrid();
-    });
+  document.getElementById('importTableBtn').addEventListener('click', ()=>{
+    document.getElementById('tableRowsInput').value = '3';
+    document.getElementById('tableColsInput').value = '3';
+    document.getElementById('tableSizeModal').hidden = false;
+    document.getElementById('tableRowsInput').focus();
+  });
 
-    document.getElementById('importTableBtn').addEventListener('click', ()=>{
-      document.getElementById('tableRowsInput').value = '3';
-      document.getElementById('tableColsInput').value = '3';
-      document.getElementById('tableSizeModal').hidden = false;
-      document.getElementById('tableRowsInput').focus();
-    });
-
-    document.getElementById('cancelEditBtn').addEventListener('click', ()=>{
-      editing = null;
-      renderAll();
-    });
-
-    document.getElementById('saveEditBtn').addEventListener('click', async ()=>{
-      const name = document.getElementById('docName').textContent.trim();
-      if(!name){ document.getElementById('docName').focus(); return; }
-
-      const entryId = existing ? existing.id : uid();
-      const data = {
-        id: entryId,
-        category: cat,
-        name: name,
-        species: document.getElementById('docSpecies').textContent.trim(),
-        dateAdded: document.getElementById('docDate').value,
-        photos: editingPhotos,
-        thumbnail: editingThumbnail || null,
-        notes: document.getElementById('docNotes').innerHTML.trim(),
-        createdAt: existing && existing.createdAt ? existing.createdAt : Date.now()
-      };
-
-      await setDoc(doc(db, "entries", entryId), data);
-
-      editing = null;
-      currentPage = cat;
-      renderAll();
-      showToast(existing ? 'Updated' : 'Added to the catalog');
-    });
-
-    document.getElementById('docName').focus();
-  }
-
-  function openEditor(id, cat){
-    editing = { id, category: cat };
+  document.getElementById('cancelEditBtn').addEventListener('click', ()=>{
+    editing = null;
     renderAll();
-  }
+  });
 
-  /* ---------- thumbnail crop tool ---------- */
-  let cropState = null;
-  let cropSaveCallback = null;
-  let cropDragging = false;
-  let cropDragStart = { x:0, y:0 };
-  let cropDragOffsetStart = { x:0, y:0 };
+  document.getElementById('saveEditBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('docName').textContent.trim();
+    if(!name){ document.getElementById('docName').focus(); return; }
 
-  function openThumbCrop(src, onSave){
-    cropSaveCallback = onSave;
-    const modal = document.getElementById('thumbCropModal');
-    const imgEl = document.getElementById('cropImage');
-    const viewport = document.getElementById('cropViewport');
-    const zoomSlider = document.getElementById('cropZoom');
-
-    imgEl.onload = ()=>{
-      const vw = viewport.clientWidth, vh = viewport.clientHeight;
-      const iw = imgEl.naturalWidth, ih = imgEl.naturalHeight;
-      const base = Math.max(vw / iw, vh / ih);
-      cropState = { iw, ih, base, zoom: 1, vw, vh, offsetX: (vw - iw*base) / 2, offsetY: (vh - ih*base) / 2 };
-      zoomSlider.value = 1;
-      updateCropTransform();
+    const data = {
+      id: existing ? existing.id : uid(),
+      category: cat,
+      name: name,
+      species: document.getElementById('docSpecies').textContent.trim(),
+      dateAdded: document.getElementById('docDate').value,
+      photos: editingPhotos,
+      thumbnail: editingThumbnail || null,
+      notes: document.getElementById('docNotes').innerHTML.trim(),
+      createdAt: existing && existing.createdAt ? existing.createdAt : Date.now()
     };
-    imgEl.src = src;
-    modal.hidden = false;
-  }
 
-  function updateCropTransform(){
-    if(!cropState) return;
-    const imgEl = document.getElementById('cropImage');
-    const { iw, ih, base, zoom, offsetX, offsetY } = cropState;
-    const scale = base * zoom;
-    imgEl.style.width = (iw * scale) + 'px';
-    imgEl.style.height = (ih * scale) + 'px';
-    imgEl.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-  }
+    if(existing) entries = entries.map(x=> x.id===existing.id ? data : x);
+    else entries.push(data);
 
-  function clampCropOffsets(){
-    if(!cropState) return;
-    const { iw, ih, base, zoom, vw, vh } = cropState;
-    const dw = iw * base * zoom, dh = ih * base * zoom;
-    cropState.offsetX = Math.min(0, Math.max(vw - dw, cropState.offsetX));
-    cropState.offsetY = Math.min(0, Math.max(vh - dh, cropState.offsetY));
-  }
-
-  const cropViewportEl = document.getElementById('cropViewport');
-  cropViewportEl.addEventListener('pointerdown', (ev)=>{
-    if(!cropState) return;
-    cropDragging = true;
-    cropDragStart = { x: ev.clientX, y: ev.clientY };
-    cropDragOffsetStart = { x: cropState.offsetX, y: cropState.offsetY };
-    cropViewportEl.setPointerCapture(ev.pointerId);
+    await saveEntries();
+    editing = null;
+    currentPage = cat;
+    renderAll();
+    showToast(existing ? 'Updated' : 'Added to the catalog');
   });
-  cropViewportEl.addEventListener('pointermove', (ev)=>{
-    if(!cropDragging || !cropState) return;
-    cropState.offsetX = cropDragOffsetStart.x + (ev.clientX - cropDragStart.x);
-    cropState.offsetY = cropDragOffsetStart.y + (ev.clientY - cropDragStart.y);
-    clampCropOffsets();
+
+  document.getElementById('docName').focus();
+}
+
+function openEditor(id, cat){
+  editing = { id, category: cat };
+  renderAll();
+}
+
+/* ---------- thumbnail crop tool ---------- */
+let cropState = null;
+let cropSaveCallback = null;
+let cropDragging = false;
+let cropDragStart = { x:0, y:0 };
+let cropDragOffsetStart = { x:0, y:0 };
+
+function openThumbCrop(src, onSave){
+  cropSaveCallback = onSave;
+  const modal = document.getElementById('thumbCropModal');
+  const imgEl = document.getElementById('cropImage');
+  const viewport = document.getElementById('cropViewport');
+  const zoomSlider = document.getElementById('cropZoom');
+
+  imgEl.onload = ()=>{
+    const vw = viewport.clientWidth, vh = viewport.clientHeight;
+    const iw = imgEl.naturalWidth, ih = imgEl.naturalHeight;
+    const base = Math.max(vw / iw, vh / ih);
+    cropState = { iw, ih, base, zoom: 1, vw, vh, offsetX: (vw - iw*base) / 2, offsetY: (vh - ih*base) / 2 };
+    zoomSlider.value = 1;
     updateCropTransform();
-  });
-  cropViewportEl.addEventListener('pointerup', ()=>{ cropDragging = false; });
-  cropViewportEl.addEventListener('pointercancel', ()=>{ cropDragging = false; });
+  };
+  imgEl.src = src;
+  modal.hidden = false;
+}
 
-  document.getElementById('cropZoom').addEventListener('input', (ev)=>{
-    if(!cropState) return;
-    cropState.zoom = parseFloat(ev.target.value);
-    clampCropOffsets();
-    updateCropTransform();
-  });
+function updateCropTransform(){
+  if(!cropState) return;
+  const imgEl = document.getElementById('cropImage');
+  const { iw, ih, base, zoom, offsetX, offsetY } = cropState;
+  const scale = base * zoom;
+  imgEl.style.width = (iw * scale) + 'px';
+  imgEl.style.height = (ih * scale) + 'px';
+  imgEl.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+}
 
-  document.getElementById('cropCancelBtn').addEventListener('click', ()=>{
+function clampCropOffsets(){
+  if(!cropState) return;
+  const { iw, ih, base, zoom, vw, vh } = cropState;
+  const dw = iw * base * zoom, dh = ih * base * zoom;
+  cropState.offsetX = Math.min(0, Math.max(vw - dw, cropState.offsetX));
+  cropState.offsetY = Math.min(0, Math.max(vh - dh, cropState.offsetY));
+}
+
+const cropViewportEl = document.getElementById('cropViewport');
+cropViewportEl.addEventListener('pointerdown', (ev)=>{
+  if(!cropState) return;
+  cropDragging = true;
+  cropDragStart = { x: ev.clientX, y: ev.clientY };
+  cropDragOffsetStart = { x: cropState.offsetX, y: cropState.offsetY };
+  cropViewportEl.setPointerCapture(ev.pointerId);
+});
+cropViewportEl.addEventListener('pointermove', (ev)=>{
+  if(!cropDragging || !cropState) return;
+  cropState.offsetX = cropDragOffsetStart.x + (ev.clientX - cropDragStart.x);
+  cropState.offsetY = cropDragOffsetStart.y + (ev.clientY - cropDragStart.y);
+  clampCropOffsets();
+  updateCropTransform();
+});
+cropViewportEl.addEventListener('pointerup', ()=>{ cropDragging = false; });
+cropViewportEl.addEventListener('pointercancel', ()=>{ cropDragging = false; });
+
+document.getElementById('cropZoom').addEventListener('input', (ev)=>{
+  if(!cropState) return;
+  cropState.zoom = parseFloat(ev.target.value);
+  clampCropOffsets();
+  updateCropTransform();
+});
+
+document.getElementById('cropCancelBtn').addEventListener('click', ()=>{
+  document.getElementById('thumbCropModal').hidden = true;
+  cropSaveCallback = null;
+});
+document.getElementById('thumbCropModal').addEventListener('click', (ev)=>{
+  if(ev.target.id === 'thumbCropModal'){
     document.getElementById('thumbCropModal').hidden = true;
     cropSaveCallback = null;
-  });
-  document.getElementById('thumbCropModal').addEventListener('click', (ev)=>{
-    if(ev.target.id === 'thumbCropModal'){
-      document.getElementById('thumbCropModal').hidden = true;
-      cropSaveCallback = null;
-    }
-  });
-
-  document.getElementById('cropSaveBtn').addEventListener('click', ()=>{
-    if(!cropState) return;
-    const { iw, ih, base, zoom, offsetX, offsetY, vw, vh } = cropState;
-    const scale = base * zoom;
-    const sx = (-offsetX) / scale, sy = (-offsetY) / scale;
-    const sw = vw / scale, sh = vh / scale;
-    const outW = 640, outH = Math.round(640 * (vh / vw));
-    const canvas = document.createElement('canvas');
-    canvas.width = outW; canvas.height = outH;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(document.getElementById('cropImage'), sx, sy, sw, sh, 0, 0, outW, outH);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    document.getElementById('thumbCropModal').hidden = true;
-    if(cropSaveCallback) cropSaveCallback(dataUrl);
-    cropSaveCallback = null;
-  });
-
-  /* ---------- table import ---------- */
-  function insertTableIntoNotes(rows, cols){
-    const notes = document.getElementById('docNotes');
-    if(!notes) return;
-    let html = '<table class="doc-table"><tbody>';
-    for(let r=0;r<rows;r++){
-      html += '<tr>';
-      for(let c=0;c<cols;c++){ html += '<td>&nbsp;</td>'; }
-      html += '</tr>';
-    }
-    html += '</tbody></table><p><br></p>';
-    notes.focus();
-    const range = document.createRange();
-    range.selectNodeContents(notes);
-    range.collapse(false);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-    document.execCommand('insertHTML', false, html);
   }
+});
 
-  function tryInsertTableFromInput(){
-    const rowsVal = parseInt(document.getElementById('tableRowsInput').value, 10);
-    const colsVal = parseInt(document.getElementById('tableColsInput').value, 10);
-    if(!rowsVal || !colsVal){ showToast('Enter rows and columns'); return; }
-    const rows = Math.max(1, Math.min(30, rowsVal));
-    const cols = Math.max(1, Math.min(30, colsVal));
-    insertTableIntoNotes(rows, cols);
-    document.getElementById('tableSizeModal').hidden = true;
+document.getElementById('cropSaveBtn').addEventListener('click', ()=>{
+  if(!cropState) return;
+  const { iw, ih, base, zoom, offsetX, offsetY, vw, vh } = cropState;
+  const scale = base * zoom;
+  const sx = (-offsetX) / scale, sy = (-offsetY) / scale;
+  const sw = vw / scale, sh = vh / scale;
+  const outW = 640, outH = Math.round(640 * (vh / vw));
+  const canvas = document.createElement('canvas');
+  canvas.width = outW; canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(document.getElementById('cropImage'), sx, sy, sw, sh, 0, 0, outW, outH);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  document.getElementById('thumbCropModal').hidden = true;
+  if(cropSaveCallback) cropSaveCallback(dataUrl);
+  cropSaveCallback = null;
+});
+
+/* ---------- table import ---------- */
+function insertTableIntoNotes(rows, cols){
+  const notes = document.getElementById('docNotes');
+  if(!notes) return;
+  let html = '<table class="doc-table"><tbody>';
+  for(let r=0;r<rows;r++){
+    html += '<tr>';
+    for(let c=0;c<cols;c++){ html += '<td>&nbsp;</td>'; }
+    html += '</tr>';
   }
+  html += '</tbody></table><p><br></p>';
+  notes.focus();
+  const range = document.createRange();
+  range.selectNodeContents(notes);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand('insertHTML', false, html);
+}
 
-  document.getElementById('tableSizeCancelBtn').addEventListener('click', ()=>{
-    document.getElementById('tableSizeModal').hidden = true;
-  });
-  document.getElementById('tableSizeModal').addEventListener('click', (ev)=>{
-    if(ev.target.id === 'tableSizeModal') document.getElementById('tableSizeModal').hidden = true;
-  });
-  document.getElementById('tableSizeInsertBtn').addEventListener('click', tryInsertTableFromInput);
-  ['tableRowsInput','tableColsInput'].forEach(id=>{
-    document.getElementById(id).addEventListener('keydown', (ev)=>{
-      if(ev.key === 'Enter'){ ev.preventDefault(); tryInsertTableFromInput(); }
-    });
-  });
+function tryInsertTableFromInput(){
+  const rowsVal = parseInt(document.getElementById('tableRowsInput').value, 10);
+  const colsVal = parseInt(document.getElementById('tableColsInput').value, 10);
+  if(!rowsVal || !colsVal){ showToast('Enter rows and columns'); return; }
+  const rows = Math.max(1, Math.min(30, rowsVal));
+  const cols = Math.max(1, Math.min(30, colsVal));
+  insertTableIntoNotes(rows, cols);
+  document.getElementById('tableSizeModal').hidden = true;
+}
 
-  // Updated Theme Toggle logic saving to localStorage
-  document.getElementById('themeToggle').addEventListener('click', ()=>{
-    const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('fyo-theme', newTheme);
+document.getElementById('tableSizeCancelBtn').addEventListener('click', ()=>{
+  document.getElementById('tableSizeModal').hidden = true;
+});
+document.getElementById('tableSizeModal').addEventListener('click', (ev)=>{
+  if(ev.target.id === 'tableSizeModal') document.getElementById('tableSizeModal').hidden = true;
+});
+document.getElementById('tableSizeInsertBtn').addEventListener('click', tryInsertTableFromInput);
+['tableRowsInput','tableColsInput'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown', (ev)=>{
+    if(ev.key === 'Enter'){ ev.preventDefault(); tryInsertTableFromInput(); }
   });
+});
 
-  document.getElementById('brandBtn').addEventListener('click', ()=>{
-    editing = null;
-    currentPage = 'home';
-    renderAll();
-  });
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 
-  document.getElementById('catList').addEventListener('click', (e)=>{
-    const btn = e.target.closest('button[data-cat]');
-    if(!btn) return;
-    editing = null;
-    currentPage = btn.dataset.cat;
-    renderAll();
-  });
+document.getElementById('brandBtn').addEventListener('click', ()=>{
+  editing = null;
+  currentPage = 'home';
+  renderAll();
+});
 
-  document.getElementById('searchInput').addEventListener('input', ()=>{
-    if(currentPage !== 'home' && !editing) renderAll();
-  });
+document.getElementById('catList').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-cat]');
+  if(!btn) return;
+  editing = null;
+  currentPage = btn.dataset.cat;
+  renderAll();
+});
+
+document.getElementById('searchInput').addEventListener('input', ()=>{
+  if(currentPage !== 'home' && !editing) renderAll();
+});
+
+loadEntries();
 </script>
 
 </body>
