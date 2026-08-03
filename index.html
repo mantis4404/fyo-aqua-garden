@@ -46,8 +46,8 @@
 
   /* ---------- top bar ---------- */
   .topbar{
-    display:flex; align-items:baseline; gap:14px;
-    padding: 22px 30px; background: var(--panel);
+    display:flex; align-items:center; gap:14px;
+    padding: 16px 30px; background: var(--panel);
     border-bottom: 3px solid var(--dark-sep);
   }
   .topbar .brand{
@@ -57,6 +57,15 @@
   .topbar .brand:hover{ color: var(--plants); }
   .topbar .brand:focus-visible{ outline: 2px solid var(--plants); outline-offset:3px; border-radius:4px; }
   .topbar .spacer{ flex:1; }
+  
+  .auth-btn{
+    all:unset; cursor:pointer; display:flex; align-items:center; gap:6px;
+    padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line);
+    font-size: 0.82rem; color: var(--text); font-weight:600; background: var(--panel);
+  }
+  .auth-btn:hover{ border-color: var(--muted); }
+  .auth-btn:focus-visible{ outline: 2px solid var(--plants); outline-offset:2px; }
+
   .theme-toggle{
     all:unset; cursor:pointer; display:flex; align-items:center; gap:8px;
     padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line);
@@ -93,7 +102,6 @@
   nav.cat-list button:hover{ background: var(--bg); }
   nav.cat-list button:focus-visible{ outline: 2px solid var(--plants); outline-offset: 2px; }
 
-  /* Set active category color for ALL categories to Plant green style */
   nav.cat-list button[data-active="true"]{ background: var(--plants-t); color:#365a41; font-weight:600; }
 
   .sidebar-foot{
@@ -205,7 +213,7 @@
   .modal-panel .doc-title{ padding-right: 40px; }
   .modal-image{ width:100%; max-height:320px; object-fit:cover; border-radius:10px; margin-bottom:22px; display:block; }
 
-  /* ---------- confirm modal ---------- */
+  /* ---------- confirm / auth modal ---------- */
   .confirm-panel{
     position:relative; background: var(--panel); border-radius: var(--radius);
     max-width: 380px; width:100%; padding: 28px 28px 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);
@@ -219,6 +227,11 @@
   }
   .btn-danger-filled:hover{ background:#a83a30; }
   .btn-danger-filled:focus-visible{ outline:2px solid #c0453a; outline-offset:2px; }
+
+  .form-input{
+    width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line);
+    background:var(--bg); color:var(--text); font-size:0.9rem; margin-bottom:12px;
+  }
 
   /* ---------- empty state ---------- */
   .empty{
@@ -340,6 +353,7 @@
 <div class="topbar">
   <button class="brand" id="brandBtn">Fyo Aqua Garden</button>
   <div class="spacer"></div>
+  <button class="auth-btn" id="authBtn">Log In</button>
   <button class="theme-toggle" id="themeToggle" aria-label="Toggle light and dark mode" title="Toggle light and dark mode">
     <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
   </button>
@@ -347,7 +361,7 @@
 
 <div class="shell">
   <aside class="sidebar">
-    <input class="search-box" id="searchInput" type="search" name="q" placeholder="Search species…" autocomplete="chrome-off" aria-autocomplete="none" role="searchbox">
+    <input class="search-box" id="searchInput" type="search" name="search_query" autocomplete="off" aria-label="Search species" placeholder="Search species…">
 
     <nav class="cat-list" id="catList">
       <button data-cat="Fish">
@@ -381,6 +395,21 @@
 
 <div class="modal-overlay" id="speciesModal" hidden>
   <div class="modal-panel" id="speciesModalPanel"></div>
+</div>
+
+<div class="modal-overlay" id="loginModal" hidden>
+  <div class="confirm-panel">
+    <h3>Sign In</h3>
+    <p>Enter your authorized user credentials to log species entries.</p>
+    <form id="loginForm" autocomplete="on" onsubmit="return false;">
+      <input type="email" id="loginEmail" name="email" class="form-input" placeholder="Authorized Email" autocomplete="username" required>
+      <input type="password" id="loginPassword" name="password" class="form-input" placeholder="Password" autocomplete="current-password" required>
+      <div class="confirm-actions" style="margin-top:14px;">
+        <button type="button" class="btn-secondary" id="loginCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="loginSubmitBtn" style="background:var(--plants)">Log In</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="modal-overlay" id="confirmModal" hidden>
@@ -441,12 +470,17 @@
 const STORAGE_KEY = 'catalog:entries';
 const GALLERY_PREFIX = 'gallery:';
 const THEME_KEY = 'catalog:theme';
-let entries = [];
-let galleryPhotos = []; // [{id, dataUrl, name, dateAdded}], independent of species logs
-let currentPage = 'home'; // 'home' | 'Fish' | 'Plants' | 'Algae' | 'Insects' | 'Gallery'
-let editing = null; // { id, category } or null when not editing
+const AUTH_KEY = 'catalog:auth_user';
 
-// All category colors now map to Plant green (#5e9b6e)
+// List allowed email addresses here:
+const ALLOWED_USERS = []; // e.g. ["myemail@example.com"]
+
+let currentUser = null;
+let entries = [];
+let galleryPhotos = [];
+let currentPage = 'home';
+let editing = null;
+
 const catColor = { Plants:'#5e9b6e', Algae:'#5e9b6e', Fish:'#5e9b6e', Insects:'#5e9b6e', Gallery:'#5e9b6e' };
 const catLabel = { Plants:'Plants', Algae:'Algae', Fish:'Fish', Insects:'Invertebrates', Gallery:'Gallery' };
 const catSingular = { Plants:'plant', Algae:'algae', Fish:'fish', Insects:'invertebrate' };
@@ -494,6 +528,69 @@ const storageAdapter = {
   }
 };
 
+/* ---------- authentication state ---------- */
+function isAuthorized() {
+  if (ALLOWED_USERS.length === 0) return !!currentUser; // Allow any logged-in email if ALLOWED_USERS is empty
+  return currentUser && ALLOWED_USERS.map(e => e.toLowerCase()).includes(currentUser.toLowerCase());
+}
+
+async function loadAuth() {
+  try {
+    const res = await storageAdapter.get(AUTH_KEY);
+    if (res && res.value) {
+      currentUser = res.value;
+    }
+  } catch(e) {}
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  const authBtn = document.getElementById('authBtn');
+  if (currentUser) {
+    authBtn.textContent = 'Log Out (' + currentUser.split('@')[0] + ')';
+  } else {
+    authBtn.textContent = 'Log In';
+  }
+}
+
+document.getElementById('authBtn').addEventListener('click', async () => {
+  if (currentUser) {
+    currentUser = null;
+    await storageAdapter.delete(AUTH_KEY);
+    updateAuthUI();
+    showToast('Logged out');
+    if (editing) { editing = null; }
+    renderAll();
+  } else {
+    document.getElementById('loginModal').hidden = false;
+    document.getElementById('loginEmail').focus();
+  }
+});
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  if (!email) return;
+
+  if (ALLOWED_USERS.length > 0 && !ALLOWED_USERS.map(u => u.toLowerCase()).includes(email.toLowerCase())) {
+    showToast('Unauthorized email address');
+    return;
+  }
+
+  currentUser = email;
+  await storageAdapter.set(AUTH_KEY, currentUser);
+  document.getElementById('loginModal').hidden = true;
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+  updateAuthUI();
+  showToast('Logged in');
+  renderAll();
+});
+
+document.getElementById('loginCancelBtn').addEventListener('click', () => {
+  document.getElementById('loginModal').hidden = true;
+});
+
 /* ---------- entry data schema ---------- */
 const ENTRY_SCHEMA_VERSION = 1;
 
@@ -527,6 +624,7 @@ async function loadEntries(){
     }
   }catch(e){ entries = []; }
   if(needsResave) await saveEntries();
+  await loadAuth();
   await loadGalleryPhotos();
   await loadTheme();
   renderAll();
@@ -663,7 +761,7 @@ function renderCategory(cat){
           <div class="sub-count">${list.length} logged</div>
         </div>
       </div>
-      <button class="add-btn" id="addBtn">+ Log ${cat === 'Fish' ? 'a fish' : cat === 'Algae' ? 'algae' : 'a ' + catSingular[cat]}</button>
+      ${isAuthorized() ? `<button class="add-btn" id="addBtn">+ Log ${cat === 'Fish' ? 'a fish' : cat === 'Algae' ? 'algae' : 'a ' + catSingular[cat]}</button>` : ''}
     </div>
     <div class="grid" id="catGrid"></div>
   `;
@@ -690,7 +788,9 @@ function renderCategory(cat){
     }).join('');
   }
 
-  document.getElementById('addBtn').addEventListener('click', ()=> openEditor(null, cat));
+  if (isAuthorized()) {
+    document.getElementById('addBtn').addEventListener('click', ()=> openEditor(null, cat));
+  }
   grid.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
 }
 
@@ -708,7 +808,7 @@ function renderGallery(){
       <div class="heading">
         <div><h2>Gallery</h2><div class="sub-count">${list.length} photos</div></div>
       </div>
-      <button class="gallery-add-btn" id="addPhotoBtn">+ Add photos</button>
+      ${isAuthorized() ? `<button class="gallery-add-btn" id="addPhotoBtn">+ Add photos</button>` : ''}
     </div>
     <div class="gallery-grid" id="galleryGrid"></div>
   `;
@@ -728,9 +828,11 @@ function renderGallery(){
     `).join('');
   }
 
-  document.getElementById('addPhotoBtn').addEventListener('click', ()=>{
-    document.getElementById('galleryFileInput').click();
-  });
+  if (isAuthorized()) {
+    document.getElementById('addPhotoBtn').addEventListener('click', ()=>{
+      document.getElementById('galleryFileInput').click();
+    });
+  }
 
   grid.querySelectorAll('.g-tile').forEach(tile=>{
     tile.addEventListener('click', ()=>{
@@ -744,6 +846,7 @@ function renderGallery(){
 }
 
 document.getElementById('galleryFileInput').addEventListener('change', async (ev)=>{
+  if(!isAuthorized()) return;
   const files = Array.from(ev.target.files || []);
   ev.target.value = '';
   for(const file of files){
@@ -785,20 +888,24 @@ function openSpeciesDetail(id){
         </div>
       </div>
     ` : ''}
-    <div class="card-actions" style="border-top:1px solid var(--line-2); padding-top:16px; margin-top:20px;">
-      <button id="speciesModalEdit">Edit</button>
-      <button class="danger" id="speciesModalDelete">Remove</button>
-    </div>
+    ${isAuthorized() ? `
+      <div class="card-actions" style="border-top:1px solid var(--line-2); padding-top:16px; margin-top:20px;">
+        <button id="speciesModalEdit">Edit</button>
+        <button class="danger" id="speciesModalDelete">Remove</button>
+      </div>
+    ` : ''}
   `;
   document.getElementById('speciesModalClose').addEventListener('click', closeSpeciesDetail);
-  document.getElementById('speciesModalEdit').addEventListener('click', ()=>{
-    closeSpeciesDetail();
-    openEditor(e.id, e.category);
-  });
-  document.getElementById('speciesModalDelete').addEventListener('click', ()=>{
-    closeSpeciesDetail();
-    openDeleteConfirm(e.id);
-  });
+  if (isAuthorized()) {
+    document.getElementById('speciesModalEdit').addEventListener('click', ()=>{
+      closeSpeciesDetail();
+      openEditor(e.id, e.category);
+    });
+    document.getElementById('speciesModalDelete').addEventListener('click', ()=>{
+      closeSpeciesDetail();
+      openDeleteConfirm(e.id);
+    });
+  }
   const galleryGrid = document.getElementById('entryGalleryGrid');
   if(galleryGrid){
     galleryGrid.querySelectorAll('.entry-gallery-tile').forEach(tile=>{
@@ -825,6 +932,7 @@ document.getElementById('speciesModal').addEventListener('click', (ev)=>{
 let pendingDeleteId = null;
 
 function openDeleteConfirm(id){
+  if(!isAuthorized()) return;
   const e = entries.find(x=>x.id===id);
   if(!e) return;
   pendingDeleteId = id;
@@ -838,6 +946,7 @@ function closeDeleteConfirm(){
 }
 
 async function deleteEntry(id){
+  if(!isAuthorized()) return;
   entries = entries.filter(x=>x.id!==id);
   await saveEntries();
   renderAll();
@@ -854,6 +963,10 @@ document.getElementById('confirmYesBtn').addEventListener('click', async ()=>{
 
 /* ---------- document-style editor ---------- */
 function renderEditor(cat, id){
+  if(!isAuthorized()) {
+    document.getElementById('loginModal').hidden = false;
+    return;
+  }
   const main = document.getElementById('main');
   main.setAttribute('data-page', cat);
   const existing = id ? entries.find(x=>x.id===id) : null;
@@ -992,6 +1105,10 @@ function renderEditor(cat, id){
 }
 
 function openEditor(id, cat){
+  if (!isAuthorized()) {
+    document.getElementById('loginModal').hidden = false;
+    return;
+  }
   editing = { id, category: cat };
   renderAll();
 }
