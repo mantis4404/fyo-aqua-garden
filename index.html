@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fyo Aqua Garden</title>
+<script>
+  // Apply theme immediately before rendering to prevent white screen flash
+  (function() {
+    var savedTheme = localStorage.getItem('fyo-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -357,7 +364,7 @@
 
 <div class="shell">
   <aside class="sidebar">
-    <input class="search-box" id="searchInput" type="text" name="species_search_field" placeholder="Search species…" autocomplete="off">
+    <input class="search-box" id="searchInput" type="text" name="species_search_query" placeholder="Search species…" autocomplete="off" aria-autocomplete="none">
 
     <nav class="cat-list" id="catList">
       <button data-cat="Fish">
@@ -1104,9 +1111,12 @@ const firebaseConfig = {
     });
   });
 
+  // Updated Theme Toggle logic saving to localStorage
   document.getElementById('themeToggle').addEventListener('click', ()=>{
-    const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('fyo-theme', newTheme);
   });
 
   document.getElementById('brandBtn').addEventListener('click', ()=>{
