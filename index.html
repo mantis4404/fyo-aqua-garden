@@ -55,6 +55,7 @@
     font-size: 1.6rem; color: var(--text);
   }
   .topbar .brand:hover{ color: var(--plants); }
+  .topbar .brand:focus-visible{ outline: 2px solid var(--plants); outline-offset:3px; border-radius:4px; }
   .topbar .spacer{ flex:1; }
 
   .auth-btn{
@@ -70,6 +71,7 @@
     font-size: 0.82rem; color: var(--text); font-weight:600;
   }
   .theme-toggle:hover{ border-color: var(--muted); }
+  .theme-toggle:focus-visible{ outline: 2px solid var(--plants); outline-offset:2px; }
   .theme-toggle svg{ width:16px; height:16px; }
 
   /* ---------- layout ---------- */
@@ -97,6 +99,8 @@
     margin-left:auto; font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color: var(--muted);
   }
   nav.cat-list button:hover{ background: var(--bg); }
+  nav.cat-list button:focus-visible{ outline: 2px solid var(--plants); outline-offset: 2px; }
+
   nav.cat-list button[data-active="true"]{ background: var(--plants-t); color:#365a41; font-weight:600; }
 
   .sidebar-foot{
@@ -113,7 +117,9 @@
   .home-hero p{ color: var(--muted); max-width: 56ch; margin: 0 0 30px; font-size: 0.98rem; }
 
   .home-recent h3{ font-size: 1.1rem; margin: 0 0 14px; }
-  .recent-strip{ display:flex; gap:16px; overflow-x:auto; padding-bottom:10px; }
+  .recent-strip{
+    display:flex; gap:16px; overflow-x:auto; padding-bottom:10px;
+  }
   .recent-strip .card{ flex: 0 0 200px; width:200px; cursor:pointer; }
 
   /* ---------- category page ---------- */
@@ -130,6 +136,7 @@
     background: var(--plants); color:#fff; display:none;
   }
   .add-btn:hover, .gallery-add-btn:hover{ transform: translateY(-1px); }
+  .add-btn:focus-visible, .gallery-add-btn:focus-visible{ outline:2px solid var(--text); outline-offset:2px; }
 
   .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(270px,1fr)); gap:18px; }
 
@@ -140,11 +147,17 @@
   }
   .card:hover{ box-shadow: 0 0 0 1px var(--muted), 0 2px 6px rgba(43,58,51,0.18); }
 
+  .card .thumb{ width:100%; height:130px; object-fit:cover; background: var(--bg); display:block; }
+
   .card-body{ padding: 16px 16px 14px; display:flex; flex-direction:column; gap:8px; flex:1; }
   .card-body .name{ font-family:'Fraunces', serif; font-size:1.08rem; font-weight:600; }
   .card-body .species{ font-size:0.8rem; font-style: italic; color: var(--muted); margin-top:-6px; }
+  .card-body .meta-line{ font-size:0.82rem; color: var(--muted); }
+  .card-body .meta-line strong{ color: var(--text); font-weight:600; }
+  .card-body .notes{ font-size:0.84rem; color:var(--text); opacity:0.85; line-height:1.5; border-top:1px solid var(--line-2); padding-top:8px; }
+  .card-body .notes ul{ margin:4px 0; padding-left:18px; }
 
-  .card-actions{ display:flex; gap:8px; margin-top:auto; padding-top:12px; }
+  .card-actions{ display:flex; gap:8px; margin-top:auto; padding-top:4px; }
   .card-actions button{
     all:unset; cursor:pointer; flex:1; text-align:center; padding:7px 0; border-radius:8px;
     font-size:0.78rem; border:1px solid var(--line); color: var(--muted);
@@ -152,31 +165,95 @@
   .card-actions button:hover{ color: var(--text); border-color: var(--muted); }
   .card-actions button.danger:hover{ color:#b8493d; border-color:#b8493d; }
 
-  /* ---------- modals & document editor ---------- */
+  /* ---------- gallery ---------- */
+  .gallery-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap:16px; }
+  .g-tile{
+    position:relative; border-radius: var(--radius); overflow:hidden; border:1px solid var(--line);
+    background: var(--panel); cursor:pointer; aspect-ratio: 1/1;
+  }
+  .g-tile img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .g-tile .g-label{
+    position:absolute; left:0; right:0; bottom:0; padding:8px 10px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.55), transparent);
+    color:#fff; font-size:0.78rem;
+  }
+  .g-tile .g-label .g-species{ font-style:italic; opacity:0.85; font-size:0.7rem; }
+
+  .lightbox{
+    position: fixed; inset:0; background: rgba(20,26,22,0.85); z-index:60;
+    display:flex; align-items:center; justify-content:center; padding: 30px;
+  }
+  .lightbox[hidden]{ display:none; }
+  .lightbox img{ max-width:90vw; max-height:80vh; border-radius:10px; }
+  .lightbox .lb-caption{ position:absolute; bottom:36px; color:#fff; text-align:center; font-size:0.9rem; }
+  .lightbox .lb-close{
+    all:unset; position:absolute; top:24px; right:30px; color:#fff; cursor:pointer; font-size:1.6rem;
+  }
+
+  /* ---------- modals ---------- */
   .modal-overlay{
     position: fixed; inset:0; background: rgba(20,26,22,0.72); z-index:40;
-    display:flex; align-items:flex-start; justify-content:center; padding: 40px 20px; overflow-y:auto;
+    display:flex; align-items:flex-start; justify-content:center; padding: 40px 20px;
+    overflow-y:auto;
   }
   .modal-overlay[hidden]{ display:none; }
   .modal-panel{
     position:relative; background: var(--panel); border-radius: var(--radius);
     max-width: 720px; width:100%; padding: 40px 48px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);
   }
+  @media (max-width: 780px){ .modal-panel{ padding: 26px 22px; } }
   .modal-close{
     all:unset; position:absolute; top:16px; right:16px; width:34px; height:34px;
     display:flex; align-items:center; justify-content:center; border-radius:50%;
-    cursor:pointer; color: var(--muted); font-size:1.4rem;
+    cursor:pointer; color: var(--muted); font-size:1.4rem; line-height:1;
   }
+  .modal-close:hover{ background: var(--bg); color: var(--text); }
+  .modal-close:focus-visible{ outline: 2px solid var(--plants); outline-offset:2px; }
+  .modal-panel .doc-title{ padding-right: 40px; }
+  .modal-image{ width:100%; max-height:320px; object-fit:cover; border-radius:10px; margin-bottom:22px; display:block; }
 
+  /* ---------- confirm & login modal ---------- */
   .confirm-panel{
     position:relative; background: var(--panel); border-radius: var(--radius);
-    max-width: 380px; width:100%; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+    max-width: 380px; width:100%; padding: 28px 28px 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);
   }
-  .confirm-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+  .confirm-panel h3{ margin: 0 0 8px; font-size:1.15rem; }
+  .confirm-panel p{ margin: 0 0 22px; color: var(--muted); font-size:0.9rem; line-height:1.5; }
+  .confirm-actions{ display:flex; gap:10px; justify-content:flex-end; }
+  .btn-danger-filled{
+    all:unset; cursor:pointer; padding:9px 20px; border-radius:8px;
+    background:#c0453a; color:#fff; font-weight:700; font-size:0.86rem;
+  }
+  .btn-danger-filled:hover{ background:#a83a30; }
+  .btn-danger-filled:focus-visible{ outline:2px solid #c0453a; outline-offset:2px; }
+
+  .login-input{ width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 0.9rem; margin-bottom: 12px; }
+
+  /* ---------- empty state ---------- */
+  .empty{
+    grid-column: 1/-1; text-align:center; padding:60px 20px;
+    border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted);
+  }
+  .empty h3{ color: var(--text); margin: 6px 0 4px; }
+
+  /* ---------- document-style editor ---------- */
+  .editor-toolbar{
+    position: sticky; top:0; z-index:5;
+    display:flex; align-items:center; gap:10px; margin-bottom:20px;
+    background: var(--bg); padding: 6px 0;
+  }
+  .editor-toolbar .spacer{ flex:1; }
+  .editor-toolbar .fmt-group{ display:flex; gap:4px; margin-right:10px; }
+  .fmt-btn{
+    all:unset; cursor:pointer; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+    border-radius:7px; border:1px solid var(--line); background: var(--panel); font-size:0.82rem; color: var(--text);
+  }
+  .fmt-btn:hover{ border-color: var(--muted); }
+  .fmt-btn:focus-visible{ outline:2px solid var(--plants); outline-offset:1px; }
 
   .btn-secondary{ all:unset; cursor:pointer; padding:9px 16px; border-radius:8px; color: var(--muted); border:1px solid var(--line); font-size:0.86rem; background: var(--panel); }
+  .btn-secondary:hover{ color: var(--text); }
   .btn-primary{ all:unset; cursor:pointer; padding:9px 18px; border-radius:8px; color:#fff; font-weight:700; font-size:0.86rem; }
-  .login-input{ width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 0.9rem; margin-bottom: 12px; }
 
   .doc-page{
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
@@ -191,9 +268,73 @@
     font-family:'Fraunces', serif; font-size: 2.1rem; font-weight:600; margin-bottom:6px; line-height:1.2;
   }
   .doc-species{ font-family:'Fraunces', serif; font-style: italic; font-size:1.05rem; color: var(--muted); margin-bottom: 22px; }
-  .doc-notes{ min-height: 220px; line-height:1.7; font-size:0.98rem; }
 
-  .empty{ grid-column: 1/-1; text-align:center; padding:60px 20px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); }
+  .doc-fields{ display:flex; flex-wrap:wrap; gap: 22px; padding: 16px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom: 24px; }
+  .doc-field{ min-width: 130px; }
+  .doc-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em; color: var(--muted); margin-bottom:4px; }
+  .doc-field [contenteditable], .doc-field input{
+    font-size:0.92rem; border:none; background:transparent; padding:2px 0; color: var(--text); min-width:100px;
+  }
+  .doc-field input[type="date"]{ font-family: inherit; }
+
+  .doc-photos-row{ margin-bottom: 22px; }
+  .doc-photos-row > label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em; color: var(--muted); margin-bottom:8px; }
+  .doc-photos-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap:10px; margin-bottom: 12px; }
+  .doc-photo-thumb{ position:relative; aspect-ratio:1/1; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
+  .doc-photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .doc-photo-thumb.is-thumb{ outline: 2px solid var(--plants); outline-offset:2px; }
+  .doc-photo-thumb .thumb-badge{
+    position:absolute; left:4px; bottom:4px; background: rgba(20,20,20,0.65); color:#fff;
+    font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    padding:2px 6px; border-radius:999px;
+  }
+  .doc-photo-crop{
+    all:unset; position:absolute; top:4px; left:4px; width:22px; height:22px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    background: rgba(20,20,20,0.6); color:#fff; font-size:0.8rem; line-height:1;
+  }
+  .doc-photo-crop:hover{ background: rgba(20,20,20,0.85); }
+  .doc-photo-remove{
+    all:unset; position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    background: rgba(20,20,20,0.6); color:#fff; font-size:0.95rem; line-height:1;
+  }
+  .doc-photo-remove:hover{ background: rgba(20,20,20,0.85); }
+  .doc-add-photos-btn{
+    all:unset; cursor:pointer; padding: 9px 16px; border-radius: 8px; border:1px dashed var(--line);
+    font-weight:600; font-size:0.82rem; color: var(--muted); display:inline-block;
+  }
+  .doc-add-photos-btn:hover{ color: var(--text); border-color: var(--muted); }
+
+  .entry-gallery{ margin-top: 24px; border-top:1px solid var(--line-2); padding-top:18px; }
+  .entry-gallery-label{ font-family:'IBM Plex Mono', monospace; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em; color: var(--muted); margin-bottom:10px; }
+  .entry-gallery-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap:10px; }
+  .entry-gallery-tile{ aspect-ratio:1/1; border-radius:8px; overflow:hidden; border:1px solid var(--line); cursor:pointer; }
+  .entry-gallery-tile img{ width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.15s ease; }
+  .entry-gallery-tile:hover img{ transform: scale(1.05); }
+
+  /* ---------- thumbnail crop tool ---------- */
+  .crop-viewport{
+    position:relative; width:100%; aspect-ratio: 2.1/1; overflow:hidden; border-radius:10px;
+    background: var(--bg); border:1px solid var(--line); cursor:grab; touch-action:none;
+  }
+  .crop-viewport:active{ cursor:grabbing; }
+  .crop-viewport img{ position:absolute; top:0; left:0; transform-origin: top left; user-select:none; pointer-events:none; }
+  .crop-zoom-row{ display:flex; align-items:center; gap:10px; margin-top:14px; font-size:0.82rem; color:var(--muted); }
+  .crop-zoom-row input[type="range"]{ flex:1; accent-color: var(--plants); }
+
+  /* ---------- table import ---------- */
+  .doc-notes table, .notes table{ border-collapse: collapse; width:100%; margin: 14px 0; }
+  .doc-notes table td, .notes table td{ border:1px solid var(--line); padding:6px 8px; font-size:0.9rem; min-width: 36px; }
+  .table-size-input{
+    width:100%; padding: 9px 12px; border:1px solid var(--line); border-radius:8px;
+    background: var(--bg); color: var(--text); font-size:0.9rem; margin-bottom:18px;
+  }
+
+  .doc-notes{
+    min-height: 220px; line-height:1.7; font-size:0.98rem;
+  }
+  .doc-notes ul{ padding-left:22px; margin:8px 0; }
 
   .toast{
     position: fixed; bottom:22px; left:50%; transform: translateX(-50%);
@@ -209,7 +350,7 @@
   <button class="brand" id="brandBtn">Fyo Aqua Garden</button>
   <div class="spacer"></div>
   <button class="auth-btn" id="authBtn">Login</button>
-  <button class="theme-toggle" id="themeToggle" aria-label="Toggle light and dark mode">
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle light and dark mode" title="Toggle light and dark mode">
     <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
   </button>
 </div>
@@ -219,16 +360,33 @@
     <input class="search-box" id="searchInput" type="text" placeholder="Search species…">
 
     <nav class="cat-list" id="catList">
-      <button data-cat="Fish"><span>Fish</span><span class="count" id="count-Fish">0</span></button>
-      <button data-cat="Plants"><span>Plants</span><span class="count" id="count-Plants">0</span></button>
-      <button data-cat="Algae"><span>Algae</span><span class="count" id="count-Algae">0</span></button>
-      <button data-cat="Insects"><span>Invertebrates</span><span class="count" id="count-Insects">0</span></button>
+      <button data-cat="Fish">
+        <span>Fish</span><span class="count" id="count-Fish">0</span>
+      </button>
+      <button data-cat="Plants">
+        <span>Plants</span><span class="count" id="count-Plants">0</span>
+      </button>
+      <button data-cat="Algae">
+        <span>Algae</span><span class="count" id="count-Algae">0</span>
+      </button>
+      <button data-cat="Insects">
+        <span>Invertebrates</span><span class="count" id="count-Insects">0</span>
+      </button>
+      <button data-cat="Gallery">
+        <span>Gallery</span><span class="count" id="count-Gallery">0</span>
+      </button>
     </nav>
 
     <div class="sidebar-foot" id="sidebarFoot">0 species logged</div>
   </aside>
 
   <main id="main"></main>
+</div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-close" id="lbClose" aria-label="Close">&times;</button>
+  <img id="lbImg" src="" alt="">
+  <div class="lb-caption" id="lbCaption"></div>
 </div>
 
 <div class="modal-overlay" id="speciesModal" hidden>
@@ -247,6 +405,58 @@
     </div>
   </div>
 </div>
+
+<div class="modal-overlay" id="confirmModal" hidden>
+  <div class="confirm-panel">
+    <h3>Remove this entry?</h3>
+    <p id="confirmModalText">This will permanently remove it from your catalog.</p>
+    <div class="confirm-actions">
+      <button class="btn-secondary" id="confirmCancelBtn">Cancel</button>
+      <button class="btn-danger-filled" id="confirmYesBtn">Yes, remove</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="thumbCropModal" hidden>
+  <div class="confirm-panel" style="max-width:480px;">
+    <h3>Edit thumbnail</h3>
+    <p>Drag to pan, use the slider to zoom, then save.</p>
+    <div class="crop-viewport" id="cropViewport">
+      <img id="cropImage" src="" alt="" draggable="false">
+    </div>
+    <div class="crop-zoom-row">
+      <span>Zoom</span>
+      <input type="range" id="cropZoom" min="1" max="3" step="0.01" value="1">
+    </div>
+    <div class="confirm-actions" style="margin-top:18px;">
+      <button class="btn-secondary" id="cropCancelBtn">Cancel</button>
+      <button class="btn-primary" id="cropSaveBtn" style="background:var(--plants)">Save thumbnail</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tableSizeModal" hidden>
+  <div class="confirm-panel">
+    <h3>Import table</h3>
+    <p>Choose how many rows and columns.</p>
+    <div style="display:flex; gap:12px; margin-bottom:18px;">
+      <div style="flex:1;">
+        <label style="display:block; font-family:'IBM Plex Mono', monospace; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); margin-bottom:6px;">Rows</label>
+        <input type="number" id="tableRowsInput" class="table-size-input" min="1" max="30" value="3" style="margin-bottom:0;">
+      </div>
+      <div style="flex:1;">
+        <label style="display:block; font-family:'IBM Plex Mono', monospace; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); margin-bottom:6px;">Columns</label>
+        <input type="number" id="tableColsInput" class="table-size-input" min="1" max="30" value="3" style="margin-bottom:0;">
+      </div>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn-secondary" id="tableSizeCancelBtn">Cancel</button>
+      <button class="btn-primary" id="tableSizeInsertBtn" style="background:var(--plants)">Insert</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="galleryFileInput" accept="image/*" multiple hidden>
 
 <div class="toast" id="toast"></div>
 
@@ -270,10 +480,15 @@ const firebaseConfig = {
   const db = getFirestore(app);
 
   let entries = [];
-  let currentPage = 'home';
+  let galleryPhotos = [];
+  let currentPage = 'home'; 
   let editing = null;
   let currentUser = null;
 
+  const catLabel = { Plants:'Plants', Algae:'Algae', Fish:'Fish', Insects:'Invertebrates', Gallery:'Gallery' };
+  const catSingular = { Plants:'plant', Algae:'algae', Fish:'fish', Insects:'invertebrate' };
+
+  function uid(){ return 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
   function escapeHtml(str){ return String(str||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
   function showToast(msg){
@@ -283,7 +498,7 @@ const firebaseConfig = {
     setTimeout(()=> t.classList.remove('show'), 1700);
   }
 
-  // Handle Authentication
+  // Authentication Setup
   onAuthStateChanged(auth, (user) => {
     currentUser = user;
     document.getElementById('authBtn').textContent = user ? 'Logout' : 'Login';
@@ -315,17 +530,34 @@ const firebaseConfig = {
     }
   });
 
-  // Real-Time Sync with Firebase Firestore
+  // Real-Time Firebase Sync
   onSnapshot(collection(db, "entries"), (snapshot) => {
     entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderAll();
   });
 
+  onSnapshot(collection(db, "gallery"), (snapshot) => {
+    galleryPhotos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+                                 .sort((a,b)=> (a.dateAdded||'').localeCompare(b.dateAdded||''));
+    renderAll();
+  });
+
+  function renderAll(){
+    updateCounts();
+    updateNavActive();
+    if(editing){ renderEditor(editing.category, editing.id); return; }
+    if(currentPage === 'home') renderHome();
+    else if(currentPage === 'Gallery') renderGallery();
+    else renderCategory(currentPage);
+  }
+
   function updateCounts(){
-    ['Fish','Plants','Algae','Insects'].forEach(cat=>{
-      const el = document.getElementById('count-'+cat);
-      if(el) el.textContent = entries.filter(e=>e.category===cat).length;
+    ['Plants','Algae','Fish','Insects'].forEach(cat=>{
+      const countEl = document.getElementById('count-'+cat);
+      if(countEl) countEl.textContent = entries.filter(e=>e.category===cat).length;
     });
+    const galCountEl = document.getElementById('count-Gallery');
+    if(galCountEl) galCountEl.textContent = galleryPhotos.length;
     document.getElementById('sidebarFoot').textContent = `${entries.length} species logged`;
   }
 
@@ -335,16 +567,9 @@ const firebaseConfig = {
     });
   }
 
-  function renderAll(){
-    updateCounts();
-    updateNavActive();
-    if(editing){ renderEditor(editing.category, editing.id); return; }
-    if(currentPage === 'home') renderHome();
-    else renderCategory(currentPage);
-  }
-
   function renderHome(){
     const main = document.getElementById('main');
+    main.removeAttribute('data-page');
     const recent = [...entries].sort((a,b)=> (b.createdAt||0) - (a.createdAt||0)).slice(0,10);
 
     main.innerHTML = `
@@ -362,20 +587,26 @@ const firebaseConfig = {
 
     if(entries.length){
       const strip = document.getElementById('recentStrip');
-      strip.innerHTML = recent.map(e => `
+      strip.innerHTML = recent.map(e => {
+        const thumbSrc = e.thumbnail || (e.photos && e.photos.length ? e.photos[0] : e.imageUrl);
+        const fit = e.thumbnail ? 'cover' : 'contain';
+        return `
         <div class="card" data-view="${e.id}">
+          ${thumbSrc ? `<img class="thumb" style="object-fit:${fit};" src="${thumbSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
           <div class="card-body">
             <div class="name">${escapeHtml(e.name)}</div>
             ${e.species ? `<div class="species">${escapeHtml(e.species)}</div>` : ''}
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
       strip.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
     }
   }
 
   function renderCategory(cat){
     const main = document.getElementById('main');
+    main.setAttribute('data-page', cat);
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
     let list = entries.filter(e => e.category === cat);
     if(search){
@@ -386,27 +617,35 @@ const firebaseConfig = {
       <div class="cat-header">
         <div class="heading">
           <div>
-            <h2>${cat}</h2>
+            <h2>${catLabel[cat]}</h2>
             <div class="sub-count">${list.length} logged</div>
           </div>
         </div>
-        ${currentUser ? `<button class="add-btn" id="addBtn" style="display:inline-block;">+ Log entry</button>` : ''}
+        ${currentUser ? `<button class="add-btn" id="addBtn" style="display:inline-block;">+ Log ${cat === 'Fish' ? 'a fish' : cat === 'Algae' ? 'algae' : 'a ' + catSingular[cat]}</button>` : ''}
       </div>
       <div class="grid" id="catGrid"></div>
     `;
 
     const grid = document.getElementById('catGrid');
     if(list.length === 0){
-      grid.innerHTML = `<div class="empty"><h3>Nothing logged yet</h3></div>`;
+      grid.innerHTML = `<div class="empty">
+        <h3>${entries.some(e=>e.category===cat) ? 'No matches' : 'Nothing logged yet'}</h3>
+        <p>${entries.some(e=>e.category===cat) ? 'Try a different search.' : `Add your first ${cat === 'Algae' ? 'algae entry' : catSingular[cat]} to start the catalog.`}</p>
+      </div>`;
     } else {
-      grid.innerHTML = list.map(e => `
+      grid.innerHTML = list.map(e => {
+        const thumbSrc = e.thumbnail || (e.photos && e.photos.length ? e.photos[0] : e.imageUrl);
+        const fit = e.thumbnail ? 'cover' : 'contain';
+        return `
         <div class="card" data-view="${e.id}">
+          ${thumbSrc ? `<img class="thumb" style="object-fit:${fit};" src="${thumbSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
           <div class="card-body">
             <div class="name">${escapeHtml(e.name)}</div>
             ${e.species ? `<div class="species">${escapeHtml(e.species)}</div>` : ''}
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     const addBtn = document.getElementById('addBtn');
@@ -414,57 +653,277 @@ const firebaseConfig = {
     grid.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
   }
 
+  function renderGallery(){
+    const main = document.getElementById('main');
+    main.setAttribute('data-page','Gallery');
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
+    let list = [...galleryPhotos].reverse();
+    if(search){
+      list = list.filter(p => (p.name||'').toLowerCase().includes(search));
+    }
+
+    main.innerHTML = `
+      <div class="cat-header">
+        <div class="heading">
+          <div><h2>Gallery</h2><div class="sub-count">${list.length} photos</div></div>
+        </div>
+        ${currentUser ? `<button class="gallery-add-btn" id="addPhotoBtn" style="display:inline-block;">+ Add photos</button>` : ''}
+      </div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    `;
+
+    const grid = document.getElementById('galleryGrid');
+    if(list.length === 0){
+      grid.innerHTML = `<div class="empty">
+        <h3>No photos yet</h3>
+        <p>Add photos from your files — they're kept separate from species logs.</p>
+      </div>`;
+    } else {
+      grid.innerHTML = list.map(p => `
+        <div class="g-tile" data-id="${p.id}">
+          <img src="${p.dataUrl}" alt="${escapeHtml(p.name)}">
+          ${p.name ? `<div class="g-label"><div>${escapeHtml(p.name)}</div></div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    const addPhotoBtn = document.getElementById('addPhotoBtn');
+    if(addPhotoBtn){
+      addPhotoBtn.addEventListener('click', ()=> document.getElementById('galleryFileInput').click());
+    }
+
+    grid.querySelectorAll('.g-tile').forEach(tile=>{
+      tile.addEventListener('click', ()=>{
+        const p = galleryPhotos.find(x=>x.id===tile.dataset.id);
+        if(!p) return;
+        document.getElementById('lbImg').src = p.dataUrl;
+        document.getElementById('lbCaption').textContent = p.name || '';
+        document.getElementById('lightbox').hidden = false;
+      });
+    });
+  }
+
+  document.getElementById('galleryFileInput').addEventListener('change', async (ev)=>{
+    const files = Array.from(ev.target.files || []);
+    ev.target.value = '';
+    for(const file of files){
+      if(!file.type.startsWith('image/')) continue;
+      const dataUrl = await new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=> resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }).catch(()=> null);
+
+      if(dataUrl) {
+        const photoId = uid();
+        await setDoc(doc(db, "gallery", photoId), {
+          id: photoId,
+          dataUrl: dataUrl,
+          name: file.name.replace(/\.[^/.]+$/, ''),
+          dateAdded: new Date().toISOString()
+        });
+      }
+    }
+    showToast(files.length > 1 ? 'Photos added' : 'Photo added');
+  });
+
+  document.getElementById('lbClose').addEventListener('click', ()=> document.getElementById('lightbox').hidden = true);
+  document.getElementById('lightbox').addEventListener('click', (ev)=>{ if(ev.target.id==='lightbox') document.getElementById('lightbox').hidden = true; });
+
+  /* ---------- species detail modal ---------- */
   function openSpeciesDetail(id){
     const e = entries.find(x=>x.id===id);
     if(!e) return;
+    const photos = (e.photos && e.photos.length) ? e.photos : (e.imageUrl ? [e.imageUrl] : []);
+    const heroSrc = e.thumbnail || photos[0];
     const panel = document.getElementById('speciesModalPanel');
     panel.innerHTML = `
       <button class="modal-close" id="speciesModalClose" aria-label="Close">&times;</button>
+      ${heroSrc ? `<img class="modal-image" src="${heroSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
       <div class="doc-title">${escapeHtml(e.name)}</div>
       ${e.species ? `<div class="doc-species">${escapeHtml(e.species)}</div>` : ''}
-      ${e.notes ? `<div style="border-top:1px solid var(--line-2); padding-top:14px; margin-top:14px;">${e.notes}</div>` : ''}
+      ${e.dateAdded ? `<div class="meta-line" style="margin-bottom:20px; color:var(--muted);">Logged since ${escapeHtml(e.dateAdded)}</div>` : ''}
+      ${e.notes ? `<div class="notes" style="border-top:1px solid var(--line-2); padding-top:14px; padding-bottom:14px;">${e.notes}</div>` : ''}
+      ${photos.length ? `
+        <div class="entry-gallery">
+          <div class="entry-gallery-label">Gallery</div>
+          <div class="entry-gallery-grid" id="entryGalleryGrid">
+            ${photos.map((src, i) => `<div class="entry-gallery-tile" data-idx="${i}"><img src="${src}" alt=""></div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
       ${currentUser ? `
-        <div class="card-actions">
+        <div class="card-actions" style="border-top:1px solid var(--line-2); padding-top:16px; margin-top:20px;">
           <button id="speciesModalEdit">Edit</button>
           <button class="danger" id="speciesModalDelete">Remove</button>
         </div>
       ` : ''}
     `;
-    document.getElementById('speciesModalClose').addEventListener('click', ()=> document.getElementById('speciesModal').hidden = true);
+    document.getElementById('speciesModalClose').addEventListener('click', closeSpeciesDetail);
     
     if (currentUser) {
       document.getElementById('speciesModalEdit').addEventListener('click', ()=>{
-        document.getElementById('speciesModal').hidden = true;
+        closeSpeciesDetail();
         openEditor(e.id, e.category);
       });
-      document.getElementById('speciesModalDelete').addEventListener('click', async ()=>{
-        if (confirm("Delete this entry?")) {
-          await deleteDoc(doc(db, "entries", e.id));
-          document.getElementById('speciesModal').hidden = true;
-          showToast('Deleted');
-        }
+      document.getElementById('speciesModalDelete').addEventListener('click', ()=>{
+        closeSpeciesDetail();
+        openDeleteConfirm(e.id);
+      });
+    }
+
+    const galleryGrid = document.getElementById('entryGalleryGrid');
+    if(galleryGrid){
+      galleryGrid.querySelectorAll('.entry-gallery-tile').forEach(tile=>{
+        tile.addEventListener('click', ()=>{
+          const src = photos[Number(tile.dataset.idx)];
+          document.getElementById('lbImg').src = src;
+          document.getElementById('lbCaption').textContent = e.species ? `${e.name} — ${e.species}` : e.name;
+          document.getElementById('lightbox').hidden = false;
+        });
       });
     }
     document.getElementById('speciesModal').hidden = false;
   }
 
-  // RESTORED ORIGINAL DOCUMENT EDITOR
+  function closeSpeciesDetail(){ document.getElementById('speciesModal').hidden = true; }
+  document.getElementById('speciesModal').addEventListener('click', (ev)=>{ if(ev.target.id === 'speciesModal') closeSpeciesDetail(); });
+
+  /* ---------- delete confirmation ---------- */
+  let pendingDeleteId = null;
+
+  function openDeleteConfirm(id){
+    const e = entries.find(x=>x.id===id);
+    if(!e) return;
+    pendingDeleteId = id;
+    document.getElementById('confirmModalText').textContent = `This will permanently remove "${e.name}" from your catalog.`;
+    document.getElementById('confirmModal').hidden = false;
+  }
+
+  function closeDeleteConfirm(){
+    pendingDeleteId = null;
+    document.getElementById('confirmModal').hidden = true;
+  }
+
+  async function deleteEntry(id){
+    await deleteDoc(doc(db, "entries", id));
+    renderAll();
+    showToast('Removed');
+  }
+
+  document.getElementById('confirmCancelBtn').addEventListener('click', closeDeleteConfirm);
+  document.getElementById('confirmModal').addEventListener('click', (ev)=>{ if(ev.target.id==='confirmModal') closeDeleteConfirm(); });
+  document.getElementById('confirmYesBtn').addEventListener('click', async ()=>{
+    const id = pendingDeleteId;
+    closeDeleteConfirm();
+    if(id) await deleteEntry(id);
+  });
+
+  /* ---------- document-style editor ---------- */
   function renderEditor(cat, id){
     const main = document.getElementById('main');
+    main.setAttribute('data-page', cat);
     const existing = id ? entries.find(x=>x.id===id) : null;
 
     main.innerHTML = `
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:20px;">
+      <div class="editor-toolbar">
+        <div class="fmt-group">
+          <button type="button" class="fmt-btn" data-cmd="bold"><b>B</b></button>
+          <button type="button" class="fmt-btn" data-cmd="italic"><i>I</i></button>
+          <button type="button" class="fmt-btn" data-cmd="underline"><u>U</u></button>
+          <button type="button" class="fmt-btn" data-cmd="insertUnorderedList">•≡</button>
+          <button type="button" class="fmt-btn" id="importTableBtn" title="Import table" aria-label="Import table">⊞</button>
+        </div>
+        <div class="spacer"></div>
         <button type="button" class="btn-secondary" id="cancelEditBtn">Cancel</button>
-        <button type="button" class="btn-primary" id="saveEditBtn" style="background:var(--plants)">Save Entry</button>
+        <button type="button" class="btn-primary" id="saveEditBtn" style="background:var(--plants)">Save</button>
       </div>
 
       <div class="doc-page">
-        <div class="doc-title" id="docName" contenteditable="true" data-placeholder="Common Name">${existing ? escapeHtml(existing.name) : ''}</div>
-        <div class="doc-species" id="docSpecies" contenteditable="true" data-placeholder="Species (scientific name)">${existing ? escapeHtml(existing.species || '') : ''}</div>
-        <div class="doc-notes" id="docNotes" contenteditable="true" data-placeholder="Write your notes, care guidelines, parameters here...">${existing ? (existing.notes || '') : ''}</div>
+        <div class="doc-title" id="docName" contenteditable="true" data-placeholder="Name">${existing ? escapeHtml(existing.name) : ''}</div>
+        <div class="doc-species" id="docSpecies" contenteditable="true" data-placeholder="Species (scientific name)">${existing ? escapeHtml(existing.species||'') : ''}</div>
+
+        <div class="doc-fields">
+          <div class="doc-field">
+            <label for="docDate">Date added</label>
+            <input id="docDate" type="date" value="${existing ? existing.dateAdded||'' : ''}">
+          </div>
+        </div>
+
+        <div class="doc-photos-row">
+          <label>Photos</label>
+          <div class="doc-photos-grid" id="docPhotosGrid"></div>
+          <button type="button" class="doc-add-photos-btn" id="docAddPhotosBtn">+ Add photos from files</button>
+          <input type="file" id="docPhotoInput" accept="image/*" multiple hidden>
+        </div>
+
+        <div class="doc-notes" id="docNotes" contenteditable="true" data-placeholder="Write your notes here — care details, tank mates, growth, behavior…">${existing ? (existing.notes||'') : ''}</div>
       </div>
     `;
+
+    main.querySelectorAll('.fmt-btn[data-cmd]').forEach(btn=>{
+      btn.addEventListener('mousedown', e=> e.preventDefault());
+      btn.addEventListener('click', ()=> document.execCommand(btn.dataset.cmd, false, null));
+    });
+
+    let editingPhotos = existing && existing.photos ? [...existing.photos] : (existing && existing.imageUrl ? [existing.imageUrl] : []);
+    let editingThumbnail = existing && existing.thumbnail ? existing.thumbnail : null;
+
+    function renderDocPhotosGrid(){
+      const grid = document.getElementById('docPhotosGrid');
+      grid.innerHTML = editingPhotos.map((src, i) => `
+        <div class="doc-photo-thumb${editingThumbnail === src ? ' is-thumb' : ''}">
+          <img src="${src}" alt="">
+          <button type="button" class="doc-photo-crop" data-idx="${i}" title="Set as thumbnail">✂</button>
+          <button type="button" class="doc-photo-remove" data-idx="${i}" aria-label="Remove photo">&times;</button>
+          ${editingThumbnail === src ? `<span class="thumb-badge">Thumbnail</span>` : ''}
+        </div>
+      `).join('');
+      grid.querySelectorAll('.doc-photo-remove').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const removedSrc = editingPhotos[Number(btn.dataset.idx)];
+          editingPhotos.splice(Number(btn.dataset.idx), 1);
+          if(editingThumbnail === removedSrc) editingThumbnail = null;
+          renderDocPhotosGrid();
+        });
+      });
+      grid.querySelectorAll('.doc-photo-crop').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const idx = Number(btn.dataset.idx);
+          openThumbCrop(editingPhotos[idx], (dataUrl)=>{
+            editingThumbnail = dataUrl;
+            renderDocPhotosGrid();
+            showToast('Thumbnail updated');
+          });
+        });
+      });
+    }
+    renderDocPhotosGrid();
+
+    document.getElementById('docAddPhotosBtn').addEventListener('click', ()=> document.getElementById('docPhotoInput').click());
+    document.getElementById('docPhotoInput').addEventListener('change', async (ev)=>{
+      const files = Array.from(ev.target.files || []);
+      ev.target.value = '';
+      for(const file of files){
+        if(!file.type.startsWith('image/')) continue;
+        const dataUrl = await new Promise((resolve, reject)=>{
+          const reader = new FileReader();
+          reader.onload = ()=> resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        }).catch(()=> null);
+        if(dataUrl) editingPhotos.push(dataUrl);
+      }
+      renderDocPhotosGrid();
+    });
+
+    document.getElementById('importTableBtn').addEventListener('click', ()=>{
+      document.getElementById('tableRowsInput').value = '3';
+      document.getElementById('tableColsInput').value = '3';
+      document.getElementById('tableSizeModal').hidden = false;
+      document.getElementById('tableRowsInput').focus();
+    });
 
     document.getElementById('cancelEditBtn').addEventListener('click', ()=>{
       editing = null;
@@ -473,30 +932,182 @@ const firebaseConfig = {
 
     document.getElementById('saveEditBtn').addEventListener('click', async ()=>{
       const name = document.getElementById('docName').textContent.trim();
-      if(!name){ alert("Name required"); return; }
+      if(!name){ document.getElementById('docName').focus(); return; }
 
-      const entryId = existing ? existing.id : 'e_' + Date.now();
+      const entryId = existing ? existing.id : uid();
       const data = {
         id: entryId,
         category: cat,
         name: name,
         species: document.getElementById('docSpecies').textContent.trim(),
+        dateAdded: document.getElementById('docDate').value,
+        photos: editingPhotos,
+        thumbnail: editingThumbnail || null,
         notes: document.getElementById('docNotes').innerHTML.trim(),
         createdAt: existing && existing.createdAt ? existing.createdAt : Date.now()
       };
 
       await setDoc(doc(db, "entries", entryId), data);
+
       editing = null;
       currentPage = cat;
       renderAll();
-      showToast('Saved');
+      showToast(existing ? 'Updated' : 'Added to the catalog');
     });
+
+    document.getElementById('docName').focus();
   }
 
   function openEditor(id, cat){
     editing = { id, category: cat };
     renderAll();
   }
+
+  /* ---------- thumbnail crop tool ---------- */
+  let cropState = null;
+  let cropSaveCallback = null;
+  let cropDragging = false;
+  let cropDragStart = { x:0, y:0 };
+  let cropDragOffsetStart = { x:0, y:0 };
+
+  function openThumbCrop(src, onSave){
+    cropSaveCallback = onSave;
+    const modal = document.getElementById('thumbCropModal');
+    const imgEl = document.getElementById('cropImage');
+    const viewport = document.getElementById('cropViewport');
+    const zoomSlider = document.getElementById('cropZoom');
+
+    imgEl.onload = ()=>{
+      const vw = viewport.clientWidth, vh = viewport.clientHeight;
+      const iw = imgEl.naturalWidth, ih = imgEl.naturalHeight;
+      const base = Math.max(vw / iw, vh / ih);
+      cropState = { iw, ih, base, zoom: 1, vw, vh, offsetX: (vw - iw*base) / 2, offsetY: (vh - ih*base) / 2 };
+      zoomSlider.value = 1;
+      updateCropTransform();
+    };
+    imgEl.src = src;
+    modal.hidden = false;
+  }
+
+  function updateCropTransform(){
+    if(!cropState) return;
+    const imgEl = document.getElementById('cropImage');
+    const { iw, ih, base, zoom, offsetX, offsetY } = cropState;
+    const scale = base * zoom;
+    imgEl.style.width = (iw * scale) + 'px';
+    imgEl.style.height = (ih * scale) + 'px';
+    imgEl.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+  }
+
+  function clampCropOffsets(){
+    if(!cropState) return;
+    const { iw, ih, base, zoom, vw, vh } = cropState;
+    const dw = iw * base * zoom, dh = ih * base * zoom;
+    cropState.offsetX = Math.min(0, Math.max(vw - dw, cropState.offsetX));
+    cropState.offsetY = Math.min(0, Math.max(vh - dh, cropState.offsetY));
+  }
+
+  const cropViewportEl = document.getElementById('cropViewport');
+  cropViewportEl.addEventListener('pointerdown', (ev)=>{
+    if(!cropState) return;
+    cropDragging = true;
+    cropDragStart = { x: ev.clientX, y: ev.clientY };
+    cropDragOffsetStart = { x: cropState.offsetX, y: cropState.offsetY };
+    cropViewportEl.setPointerCapture(ev.pointerId);
+  });
+  cropViewportEl.addEventListener('pointermove', (ev)=>{
+    if(!cropDragging || !cropState) return;
+    cropState.offsetX = cropDragOffsetStart.x + (ev.clientX - cropDragStart.x);
+    cropState.offsetY = cropDragOffsetStart.y + (ev.clientY - cropDragStart.y);
+    clampCropOffsets();
+    updateCropTransform();
+  });
+  cropViewportEl.addEventListener('pointerup', ()=>{ cropDragging = false; });
+  cropViewportEl.addEventListener('pointercancel', ()=>{ cropDragging = false; });
+
+  document.getElementById('cropZoom').addEventListener('input', (ev)=>{
+    if(!cropState) return;
+    cropState.zoom = parseFloat(ev.target.value);
+    clampCropOffsets();
+    updateCropTransform();
+  });
+
+  document.getElementById('cropCancelBtn').addEventListener('click', ()=>{
+    document.getElementById('thumbCropModal').hidden = true;
+    cropSaveCallback = null;
+  });
+  document.getElementById('thumbCropModal').addEventListener('click', (ev)=>{
+    if(ev.target.id === 'thumbCropModal'){
+      document.getElementById('thumbCropModal').hidden = true;
+      cropSaveCallback = null;
+    }
+  });
+
+  document.getElementById('cropSaveBtn').addEventListener('click', ()=>{
+    if(!cropState) return;
+    const { iw, ih, base, zoom, offsetX, offsetY, vw, vh } = cropState;
+    const scale = base * zoom;
+    const sx = (-offsetX) / scale, sy = (-offsetY) / scale;
+    const sw = vw / scale, sh = vh / scale;
+    const outW = 640, outH = Math.round(640 * (vh / vw));
+    const canvas = document.createElement('canvas');
+    canvas.width = outW; canvas.height = outH;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(document.getElementById('cropImage'), sx, sy, sw, sh, 0, 0, outW, outH);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    document.getElementById('thumbCropModal').hidden = true;
+    if(cropSaveCallback) cropSaveCallback(dataUrl);
+    cropSaveCallback = null;
+  });
+
+  /* ---------- table import ---------- */
+  function insertTableIntoNotes(rows, cols){
+    const notes = document.getElementById('docNotes');
+    if(!notes) return;
+    let html = '<table class="doc-table"><tbody>';
+    for(let r=0;r<rows;r++){
+      html += '<tr>';
+      for(let c=0;c<cols;c++){ html += '<td>&nbsp;</td>'; }
+      html += '</tr>';
+    }
+    html += '</tbody></table><p><br></p>';
+    notes.focus();
+    const range = document.createRange();
+    range.selectNodeContents(notes);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('insertHTML', false, html);
+  }
+
+  function tryInsertTableFromInput(){
+    const rowsVal = parseInt(document.getElementById('tableRowsInput').value, 10);
+    const colsVal = parseInt(document.getElementById('tableColsInput').value, 10);
+    if(!rowsVal || !colsVal){ showToast('Enter rows and columns'); return; }
+    const rows = Math.max(1, Math.min(30, rowsVal));
+    const cols = Math.max(1, Math.min(30, colsVal));
+    insertTableIntoNotes(rows, cols);
+    document.getElementById('tableSizeModal').hidden = true;
+  }
+
+  document.getElementById('tableSizeCancelBtn').addEventListener('click', ()=>{
+    document.getElementById('tableSizeModal').hidden = true;
+  });
+  document.getElementById('tableSizeModal').addEventListener('click', (ev)=>{
+    if(ev.target.id === 'tableSizeModal') document.getElementById('tableSizeModal').hidden = true;
+  });
+  document.getElementById('tableSizeInsertBtn').addEventListener('click', tryInsertTableFromInput);
+  ['tableRowsInput','tableColsInput'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown', (ev)=>{
+      if(ev.key === 'Enter'){ ev.preventDefault(); tryInsertTableFromInput(); }
+    });
+  });
+
+  document.getElementById('themeToggle').addEventListener('click', ()=>{
+    const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+  });
 
   document.getElementById('brandBtn').addEventListener('click', ()=>{
     editing = null;
@@ -512,11 +1123,8 @@ const firebaseConfig = {
     renderAll();
   });
 
-  document.getElementById('searchInput').addEventListener('input', renderAll);
-
-  document.getElementById('themeToggle').addEventListener('click', ()=>{
-    const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+  document.getElementById('searchInput').addEventListener('input', ()=>{
+    if(currentPage !== 'home' && !editing) renderAll();
   });
 </script>
 
