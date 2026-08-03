@@ -317,6 +317,10 @@
   .entry-gallery-tile img{ width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.15s ease; }
   .entry-gallery-tile:hover img{ transform: scale(1.05); }
 
+  .entry-video{ margin-top: 24px; border-top:1px solid var(--line-2); padding-top:18px; }
+  .video-embed-wrap{ position:relative; width:100%; padding-top:56.25%; border-radius:10px; overflow:hidden; background:var(--bg); }
+  .video-embed-wrap iframe{ position:absolute; top:0; left:0; width:100%; height:100%; border:0; }
+
   /* ---------- thumbnail crop tool ---------- */
   .crop-viewport{
     position:relative; width:100%; aspect-ratio: 2.1/1; overflow:hidden; border-radius:10px;
@@ -584,9 +588,27 @@ function normalizeEntry(raw){
     dateAdded: raw.dateAdded || '',
     photos: Array.isArray(raw.photos) ? raw.photos : (raw.imageUrl ? [raw.imageUrl] : []),
     thumbnail: raw.thumbnail || null,
+    videoUrl: raw.videoUrl || '',
     notes: raw.notes || '',
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now()
   };
+}
+
+// Pulls the 11-char video ID out of any common YouTube link shape
+// (watch?v=, youtu.be/, /embed/, /shorts/), or a bare ID pasted directly.
+// Returns null if nothing recognizable is found.
+function extractYouTubeId(input){
+  if(!input) return null;
+  const str = String(input).trim();
+  if(/^[\w-]{11}$/.test(str)) return str;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtube\.com\/shorts\/|youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtu\.be\/)([\w-]{11})/
+  ];
+  for(const re of patterns){
+    const m = str.match(re);
+    if(m) return m[1];
+  }
+  return null;
 }
 
 // Real-time sync: every device/tab gets pushed updates the moment anyone
@@ -745,6 +767,7 @@ function openSpeciesDetail(id){
   if(!e) return;
   const photos = (e.photos && e.photos.length) ? e.photos : (e.imageUrl ? [e.imageUrl] : []);
   const heroSrc = e.thumbnail || photos[0];
+  const videoId = extractYouTubeId(e.videoUrl);
   const panel = document.getElementById('speciesModalPanel');
   panel.innerHTML = `
     <button class="modal-close" id="speciesModalClose" aria-label="Close">&times;</button>
@@ -753,6 +776,14 @@ function openSpeciesDetail(id){
     ${e.species ? `<div class="doc-species">${escapeHtml(e.species)}</div>` : ''}
     ${e.dateAdded ? `<div class="meta-line" style="margin-bottom:20px; color:var(--muted);">Logged since ${escapeHtml(e.dateAdded)}</div>` : ''}
     ${e.notes ? `<div class="notes" style="border-top:1px solid var(--line-2); padding-top:14px; padding-bottom:14px;">${e.notes}</div>` : ''}
+    ${videoId ? `
+      <div class="entry-video">
+        <div class="entry-gallery-label">Video</div>
+        <div class="video-embed-wrap">
+          <iframe src="https://www.youtube-nocookie.com/embed/${videoId}" title="${escapeHtml(e.name)} video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+      </div>
+    ` : ''}
     ${photos.length ? `
       <div class="entry-gallery">
         <div class="entry-gallery-label">Gallery</div>
@@ -871,6 +902,10 @@ function renderEditor(cat, id){
           <label for="docDate">Date added</label>
           <input id="docDate" type="date" value="${existing ? existing.dateAdded||'' : ''}">
         </div>
+        <div class="doc-field" style="flex:1; min-width:220px;">
+          <label for="docVideo">YouTube video (optional)</label>
+          <input id="docVideo" type="text" placeholder="Paste a YouTube link" value="${existing ? escapeHtml(existing.videoUrl||'') : ''}">
+        </div>
       </div>
 
       <div class="doc-photos-row">
@@ -958,6 +993,11 @@ function renderEditor(cat, id){
     if(!name){ document.getElementById('docName').focus(); return; }
 
     const docSpeciesEl = document.getElementById('docSpecies');
+    const videoInput = document.getElementById('docVideo').value.trim();
+    if(videoInput && !extractYouTubeId(videoInput)){
+      showToast("Couldn't read that YouTube link — check the URL");
+      return;
+    }
 
     const data = {
       id: existing ? existing.id : uid(),
@@ -967,6 +1007,7 @@ function renderEditor(cat, id){
       dateAdded: document.getElementById('docDate').value,
       photos: editingPhotos,
       thumbnail: editingThumbnail || null,
+      videoUrl: videoInput,
       notes: document.getElementById('docNotes').innerHTML.trim(),
       createdAt: existing && existing.createdAt ? existing.createdAt : Date.now()
     };
