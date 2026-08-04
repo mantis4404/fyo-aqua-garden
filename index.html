@@ -119,7 +119,7 @@
 
   .home-recent h3{ font-size: 1.1rem; margin: 0 0 14px; }
   .recent-strip{
-    display:flex; gap:16px; overflow-x:auto; padding-bottom:10px;
+    display:flex; gap:16px; overflow-x:auto; padding:6px 4px 14px;
   }
   .recent-strip .card{ flex: 0 0 200px; width:200px; cursor:pointer; }
 
@@ -143,12 +143,12 @@
 
   .card{
     background: var(--panel); border:1px solid var(--line); border-radius: var(--radius);
-    padding: 0; overflow:hidden; display:flex; flex-direction:column;
+    padding: 0; display:flex; flex-direction:column;
     transition: box-shadow 0.12s ease;
   }
   .card:hover{ box-shadow: 0 0 0 1px var(--muted), 0 2px 6px rgba(43,58,51,0.18); }
 
-  .card .thumb{ width:100%; height:130px; object-fit:cover; background: var(--bg); display:block; }
+  .card .thumb{ width:100%; height:130px; object-fit:cover; background: var(--bg); display:block; border-radius: var(--radius) var(--radius) 0 0; }
 
   .card-body{ padding: 16px 16px 14px; display:flex; flex-direction:column; gap:8px; flex:1; }
   .card-body .name{ font-family:'Fraunces', serif; font-size:1.08rem; font-weight:600; }
@@ -505,6 +505,39 @@ const NO_SPECIES_CATS = ['Gallery'];
 
 function uid(){ return 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
 function escapeHtml(str){ return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+// Firestore caps a document at 1 MiB. Photos are stored as base64 text
+// inside the entry document, so we leave real headroom under that cap —
+// the rest of the entry (notes, fields) takes some space too, and base64
+// itself already inflates the raw image bytes by ~33%.
+const MAX_ENTRY_BYTES = 900 * 1024;
+
+// Shrinks an uploaded image to a reasonable max dimension and re-encodes
+// it as JPEG before it ever becomes base64 — this is what actually buys
+// headroom to fit more than one or two photos under the Firestore limit.
+function compressImageFile(file, maxDim=1400, quality=0.78){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxDim || height > maxDim){
+          if(width >= height){ height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Could not read image'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+}
 
 /* ---------- authentication state ---------- */
 function isAuthorized() {
@@ -962,17 +995,16 @@ function renderEditor(cat, id){
   document.getElementById('docPhotoInput').addEventListener('change', async (ev)=>{
     const files = Array.from(ev.target.files || []);
     ev.target.value = '';
+    let failed = 0;
     for(const file of files){
       if(!file.type.startsWith('image/')) continue;
-      const dataUrl = await new Promise((resolve, reject)=>{
-        const reader = new FileReader();
-        reader.onload = ()=> resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      }).catch(()=> null);
-      if(dataUrl) editingPhotos.push(dataUrl);
+      try{
+        const dataUrl = await compressImageFile(file);
+        editingPhotos.push(dataUrl);
+      }catch(e){ failed++; }
     }
     renderDocPhotosGrid();
+    if(failed) showToast(failed === 1 ? "Couldn't process one photo" : `Couldn't process ${failed} photos`);
   });
 
   document.getElementById('importTableBtn').addEventListener('click', ()=>{
@@ -1013,6 +1045,15 @@ function renderEditor(cat, id){
     };
 
     const { id: entryId, ...docData } = data;
+
+    const approxBytes = new Blob([JSON.stringify(docData)]).size;
+    if(approxBytes > MAX_ENTRY_BYTES){
+      const mb = (approxBytes / (1024*1024)).toFixed(2);
+      const limitMb = (MAX_ENTRY_BYTES / (1024*1024)).toFixed(2);
+      showToast(`Too large to save (${mb} MB, limit ~${limitMb} MB) — remove a photo or two`);
+      return;
+    }
+
     try{
       await entriesCollection.doc(entryId).set(docData);
     }catch(e){
