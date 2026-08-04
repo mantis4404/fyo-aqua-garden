@@ -498,6 +498,32 @@ let entries = [];
 let currentPage = 'home';
 let editing = null;
 
+/* ---------- remember last page + scroll position across reloads ---------- */
+const NAV_STATE_KEY = 'catalog:nav_state';
+const VALID_PAGES = ['home', 'Plants', 'Algae', 'Fish', 'Insects', 'Gallery'];
+let pendingScrollY = 0;
+let hasRestoredScroll = false;
+
+try{
+  const savedNav = JSON.parse(localStorage.getItem(NAV_STATE_KEY) || 'null');
+  if(savedNav && VALID_PAGES.includes(savedNav.page)){
+    currentPage = savedNav.page;
+    pendingScrollY = typeof savedNav.scrollY === 'number' ? savedNav.scrollY : 0;
+  }
+}catch(e){}
+
+function saveNavState(){
+  try{
+    localStorage.setItem(NAV_STATE_KEY, JSON.stringify({ page: currentPage, scrollY: window.scrollY }));
+  }catch(e){}
+}
+
+let navScrollSaveTimer = null;
+window.addEventListener('scroll', ()=>{
+  clearTimeout(navScrollSaveTimer);
+  navScrollSaveTimer = setTimeout(saveNavState, 150);
+});
+
 const catColor = { Plants:'#5e9b6e', Algae:'#5e9b6e', Fish:'#5e9b6e', Insects:'#5e9b6e', Gallery:'#5e9b6e' };
 const catLabel = { Plants:'Plants', Algae:'Algae', Fish:'Fish', Insects:'Invertebrates', Gallery:'Gallery' };
 const catSingular = { Plants:'plant', Algae:'algae', Fish:'fish', Insects:'invertebrate', Gallery:'gallery post' };
@@ -652,6 +678,12 @@ function subscribeEntries(){
       .map(doc => normalizeEntry({ id: doc.id, ...doc.data() }))
       .filter(Boolean);
     renderAll();
+    if(!hasRestoredScroll){
+      hasRestoredScroll = true;
+      if(pendingScrollY){
+        requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, pendingScrollY)));
+      }
+    }
   }, (err) => {
     console.error(err);
     showToast('Could not load catalog — check your connection');
@@ -1065,6 +1097,7 @@ function renderEditor(cat, id){
     editing = null;
     currentPage = cat;
     renderAll();
+    saveNavState();
     showToast(existing ? 'Updated' : 'Added to the catalog');
   });
 
@@ -1227,6 +1260,8 @@ document.getElementById('brandBtn').addEventListener('click', ()=>{
   editing = null;
   currentPage = 'home';
   renderAll();
+  window.scrollTo(0, 0);
+  saveNavState();
 });
 
 document.getElementById('catList').addEventListener('click', (e)=>{
@@ -1235,6 +1270,8 @@ document.getElementById('catList').addEventListener('click', (e)=>{
   editing = null;
   currentPage = btn.dataset.cat;
   renderAll();
+  window.scrollTo(0, 0);
+  saveNavState();
 });
 
 document.getElementById('searchInput').addEventListener('input', ()=>{
