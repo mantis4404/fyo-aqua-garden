@@ -324,6 +324,15 @@
   }
   .doc-add-photos-btn:hover{ color: var(--text); border-color: var(--muted); }
 
+  .gallery-photos-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:16px; margin-bottom: 12px; }
+  .gallery-photo-draft{ display:flex; flex-direction:column; gap:6px; }
+  .gallery-photo-caption{
+    width:100%; font-size:0.82rem; padding:7px 9px; border:1px solid var(--line); border-radius:6px;
+    background:var(--panel); color:var(--text); font-family:inherit; box-sizing:border-box;
+  }
+  .gallery-photo-caption:focus{ outline:none; border-color:var(--muted); }
+  .photos-loading{ font-size:0.85rem; color:var(--muted); padding:8px 0; grid-column:1/-1; }
+
   .entry-gallery{ margin-top: 24px; border-top:1px solid var(--line-2); padding-top:18px; }
   .entry-gallery-label{ font-family:'IBM Plex Mono', monospace; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em; color: var(--muted); margin-bottom:10px; }
   .entry-gallery-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap:10px; }
@@ -508,6 +517,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const entriesCollection = db.collection('entries');
+const entryPhotosCollection = db.collection('entryPhotos');
 
 // List allowed email addresses here — must match the Firestore Security Rules.
 const ALLOWED_USERS = ["howingowentam@gmail.com", "lazerboltx1@gmail.com"];
@@ -842,17 +852,18 @@ function renderCategory(cat){
   grid.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
 }
 
-let lbState = { photos: [], idx: 0, desc: '', showDesc: false, name: '', species: '' };
+let lbState = { photos: [], idx: 0, captions: [], showDesc: false, name: '', species: '' };
 
 function renderLightbox(){
-  const { photos, idx, desc, showDesc, name, species } = lbState;
+  const { photos, idx, captions, showDesc, name, species } = lbState;
   if(!photos.length) return;
   document.getElementById('lbImg').src = photos[idx];
   document.getElementById('lbCaption').textContent = species ? `${name} — ${species}` : name;
 
+  const desc = captions[idx] || '';
   const descEl = document.getElementById('lbDesc');
   if(showDesc && desc){
-    descEl.innerHTML = desc;
+    descEl.textContent = desc;
     descEl.hidden = false;
   } else {
     descEl.hidden = true;
@@ -867,7 +878,7 @@ function openLightbox(photos, idx, opts={}){
   lbState = {
     photos,
     idx,
-    desc: opts.desc || '',
+    captions: opts.captions || [],
     showDesc: !!opts.showDesc,
     name: opts.name || '',
     species: opts.species || ''
@@ -895,11 +906,31 @@ document.addEventListener('keydown', (ev)=>{
 });
 
 /* ---------- species detail modal ---------- */
+function renderEntryGalleryTiles(e, photoObjs){
+  const section = document.getElementById('entryGallerySection');
+  const grid = document.getElementById('entryGalleryGrid');
+  if(!section || !grid) return;
+  if(!photoObjs.length){ section.hidden = true; return; }
+  section.hidden = false;
+  grid.innerHTML = photoObjs.map((p, i) => `<div class="entry-gallery-tile" data-idx="${i}"><img src="${p.url}" alt=""></div>`).join('');
+  grid.querySelectorAll('.entry-gallery-tile').forEach(tile=>{
+    tile.addEventListener('click', ()=>{
+      openLightbox(photoObjs.map(p=>p.url), Number(tile.dataset.idx), {
+        captions: photoObjs.map(p=>p.caption||''),
+        showDesc: photoObjs.some(p=>p.caption),
+        name: e.name,
+        species: e.species
+      });
+    });
+  });
+}
+
 function openSpeciesDetail(id){
   const e = entries.find(x=>x.id===id);
   if(!e) return;
-  const photos = (e.photos && e.photos.length) ? e.photos : (e.imageUrl ? [e.imageUrl] : []);
-  const heroSrc = e.thumbnail || photos[0];
+  const isGallery = e.category === 'Gallery';
+  const legacyPhotos = (e.photos && e.photos.length) ? e.photos : (e.imageUrl ? [e.imageUrl] : []);
+  const heroSrc = e.thumbnail || legacyPhotos[0];
   const videoId = extractYouTubeId(e.videoUrl);
   const panel = document.getElementById('speciesModalPanel');
   panel.innerHTML = `
@@ -917,14 +948,10 @@ function openSpeciesDetail(id){
         </div>
       </div>
     ` : ''}
-    ${photos.length ? `
-      <div class="entry-gallery">
-        <div class="entry-gallery-label">Gallery</div>
-        <div class="entry-gallery-grid" id="entryGalleryGrid">
-          ${photos.map((src, i) => `<div class="entry-gallery-tile" data-idx="${i}"><img src="${src}" alt=""></div>`).join('')}
-        </div>
-      </div>
-    ` : ''}
+    <div class="entry-gallery" id="entryGallerySection" hidden>
+      <div class="entry-gallery-label">Gallery</div>
+      <div class="entry-gallery-grid" id="entryGalleryGrid"></div>
+    </div>
     ${isAuthorized() ? `
       <div class="card-actions" style="border-top:1px solid var(--line-2); padding-top:16px; margin-top:20px;">
         <button id="speciesModalEdit">Edit</button>
@@ -943,19 +970,27 @@ function openSpeciesDetail(id){
       openDeleteConfirm(e.id);
     });
   }
-  const galleryGrid = document.getElementById('entryGalleryGrid');
-  if(galleryGrid){
-    galleryGrid.querySelectorAll('.entry-gallery-tile').forEach(tile=>{
-      tile.addEventListener('click', ()=>{
-        openLightbox(photos, Number(tile.dataset.idx), {
-          desc: e.notes,
-          showDesc: e.category === 'Gallery',
-          name: e.name,
-          species: e.species
-        });
-      });
+
+  if(isGallery){
+    document.getElementById('entryGallerySection').hidden = false;
+    document.getElementById('entryGalleryGrid').innerHTML = `<div class="photos-loading">Loading photos…</div>`;
+    entryPhotosCollection.where('entryId', '==', e.id).get().then(snap=>{
+      let photoDocs = snap.docs.map(d=>{
+        const data = d.data();
+        return { url: data.url, caption: data.caption || '', order: typeof data.order === 'number' ? data.order : 0 };
+      }).sort((a,b)=> a.order - b.order);
+      if(legacyPhotos.length){
+        photoDocs = [...legacyPhotos.map(url => ({ url, caption: '', order: -1 })), ...photoDocs];
+      }
+      renderEntryGalleryTiles(e, photoDocs);
+    }).catch(err=>{
+      console.error(err);
+      document.getElementById('entryGalleryGrid').innerHTML = `<div class="photos-loading">Could not load photos</div>`;
     });
+  } else if(legacyPhotos.length){
+    renderEntryGalleryTiles(e, legacyPhotos.map(url => ({ url, caption: '' })));
   }
+
   document.getElementById('speciesModal').hidden = false;
 }
 
@@ -987,7 +1022,11 @@ function closeDeleteConfirm(){
 async function deleteEntry(id){
   if(!isAuthorized()) return;
   try{
-    await entriesCollection.doc(id).delete();
+    const photosSnap = await entryPhotosCollection.where('entryId', '==', id).get();
+    const batch = db.batch();
+    photosSnap.docs.forEach(d => batch.delete(d.ref));
+    batch.delete(entriesCollection.doc(id));
+    await batch.commit();
   }catch(e){
     console.error(e);
     showToast('Could not remove — try again');
@@ -1045,7 +1084,7 @@ function renderEditor(cat, id){
 
       <div class="doc-photos-row">
         <label>Photos</label>
-        <div class="doc-photos-grid" id="docPhotosGrid"></div>
+        <div class="${cat === 'Gallery' ? 'gallery-photos-grid' : 'doc-photos-grid'}" id="docPhotosGrid"></div>
         <button type="button" class="doc-add-photos-btn" id="docAddPhotosBtn">+ Add photos from files</button>
         <input type="file" id="docPhotoInput" accept="image/*" multiple hidden>
       </div>
@@ -1059,10 +1098,21 @@ function renderEditor(cat, id){
     btn.addEventListener('click', ()=> document.execCommand(btn.dataset.cmd, false, null));
   });
 
+  const isGallery = cat === 'Gallery';
+
+  // Non-Gallery categories: unchanged — photos stay embedded in the entry document.
   let editingPhotos = existing && existing.photos ? [...existing.photos] : (existing && existing.imageUrl ? [existing.imageUrl] : []);
   let editingThumbnail = existing && existing.thumbnail ? existing.thumbnail : null;
 
+  // Gallery entries: each photo is its own Firestore document (with its own
+  // caption), so the gallery isn't bounded by the 1 MiB per-document limit —
+  // only each individual photo needs to fit under it.
+  let galleryPhotoDrafts = []; // { id: existing doc id | null, url, caption }
+  let originalGalleryPhotoIds = [];
+  let galleryPhotosLoaded = !isGallery;
+
   function renderDocPhotosGrid(){
+    if(isGallery){ renderGalleryPhotoDrafts(); return; }
     const grid = document.getElementById('docPhotosGrid');
     grid.innerHTML = editingPhotos.map((src, i) => `
       <div class="doc-photo-thumb${editingThumbnail === src ? ' is-thumb' : ''}">
@@ -1091,6 +1141,72 @@ function renderEditor(cat, id){
       });
     });
   }
+
+  function renderGalleryPhotoDrafts(){
+    const grid = document.getElementById('docPhotosGrid');
+    if(!galleryPhotosLoaded){
+      grid.innerHTML = `<div class="photos-loading">Loading photos…</div>`;
+      return;
+    }
+    grid.innerHTML = galleryPhotoDrafts.map((draft, i) => `
+      <div class="gallery-photo-draft">
+        <div class="doc-photo-thumb${editingThumbnail === draft.url ? ' is-thumb' : ''}">
+          <img src="${draft.url}" alt="">
+          <button type="button" class="doc-photo-crop" data-idx="${i}" title="Set as thumbnail">✂</button>
+          <button type="button" class="doc-photo-remove" data-idx="${i}" aria-label="Remove photo">&times;</button>
+          ${editingThumbnail === draft.url ? `<span class="thumb-badge">Thumbnail</span>` : ''}
+        </div>
+        <input type="text" class="gallery-photo-caption" data-idx="${i}" placeholder="Add a caption…" value="${escapeHtml(draft.caption||'')}">
+      </div>
+    `).join('');
+    grid.querySelectorAll('.doc-photo-remove').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const idx = Number(btn.dataset.idx);
+        const removedUrl = galleryPhotoDrafts[idx].url;
+        galleryPhotoDrafts.splice(idx, 1);
+        if(editingThumbnail === removedUrl) editingThumbnail = null;
+        renderGalleryPhotoDrafts();
+      });
+    });
+    grid.querySelectorAll('.doc-photo-crop').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const idx = Number(btn.dataset.idx);
+        openThumbCrop(galleryPhotoDrafts[idx].url, (dataUrl)=>{
+          editingThumbnail = dataUrl;
+          renderGalleryPhotoDrafts();
+          showToast('Thumbnail updated');
+        });
+      });
+    });
+    grid.querySelectorAll('.gallery-photo-caption').forEach(input=>{
+      input.addEventListener('input', ()=>{
+        galleryPhotoDrafts[Number(input.dataset.idx)].caption = input.value;
+      });
+    });
+  }
+
+  if(isGallery && existing){
+    entryPhotosCollection.where('entryId', '==', existing.id).get().then(snap=>{
+      let loaded = snap.docs.map(d=>{
+        const data = d.data();
+        return { id: d.id, url: data.url, caption: data.caption || '', order: typeof data.order === 'number' ? data.order : 0 };
+      }).sort((a,b)=> a.order - b.order);
+      // Backward-compat: fold in any photos still embedded from before this feature existed.
+      if(existing.photos && existing.photos.length){
+        loaded = [...existing.photos.map(url => ({ id: null, url, caption: '' })), ...loaded];
+      }
+      galleryPhotoDrafts = loaded;
+      originalGalleryPhotoIds = loaded.filter(d => d.id).map(d => d.id);
+      galleryPhotosLoaded = true;
+      renderGalleryPhotoDrafts();
+    }).catch(e=>{
+      console.error(e);
+      galleryPhotosLoaded = true;
+      showToast('Could not load existing photos');
+      renderGalleryPhotoDrafts();
+    });
+  }
+
   renderDocPhotosGrid();
 
   document.getElementById('docAddPhotosBtn').addEventListener('click', ()=> document.getElementById('docPhotoInput').click());
@@ -1102,7 +1218,8 @@ function renderEditor(cat, id){
       if(!file.type.startsWith('image/')) continue;
       try{
         const dataUrl = await compressImageFile(file);
-        editingPhotos.push(dataUrl);
+        if(isGallery) galleryPhotoDrafts.push({ id: null, url: dataUrl, caption: '' });
+        else editingPhotos.push(dataUrl);
       }catch(e){ failed++; }
     }
     renderDocPhotosGrid();
@@ -1133,31 +1250,52 @@ function renderEditor(cat, id){
       return;
     }
 
+    const entryId = existing ? existing.id : uid();
+
     const data = {
-      id: existing ? existing.id : uid(),
       category: cat,
       name: name,
       species: docSpeciesEl ? docSpeciesEl.textContent.trim() : '',
       dateAdded: document.getElementById('docDate').value,
-      photos: editingPhotos,
+      photos: isGallery ? [] : editingPhotos,
       thumbnail: editingThumbnail || null,
       videoUrl: videoInput,
       notes: document.getElementById('docNotes').innerHTML.trim(),
       createdAt: existing && existing.createdAt ? existing.createdAt : Date.now()
     };
 
-    const { id: entryId, ...docData } = data;
-
-    const approxBytes = new Blob([JSON.stringify(docData)]).size;
-    if(approxBytes > MAX_ENTRY_BYTES){
-      const mb = (approxBytes / (1024*1024)).toFixed(2);
-      const limitMb = (MAX_ENTRY_BYTES / (1024*1024)).toFixed(2);
-      showToast(`Too large to save (${mb} MB, limit ~${limitMb} MB) — remove a photo or two`);
-      return;
+    if(!isGallery){
+      const approxBytes = new Blob([JSON.stringify(data)]).size;
+      if(approxBytes > MAX_ENTRY_BYTES){
+        const mb = (approxBytes / (1024*1024)).toFixed(2);
+        const limitMb = (MAX_ENTRY_BYTES / (1024*1024)).toFixed(2);
+        showToast(`Too large to save (${mb} MB, limit ~${limitMb} MB) — remove a photo or two`);
+        return;
+      }
     }
 
     try{
-      await entriesCollection.doc(entryId).set(docData);
+      const batch = db.batch();
+      batch.set(entriesCollection.doc(entryId), data);
+
+      if(isGallery){
+        const keptIds = [];
+        let skippedOversized = 0;
+        galleryPhotoDrafts.forEach((draft, i) => {
+          const photoDoc = { entryId, url: draft.url, caption: draft.caption || '', order: i, createdAt: Date.now() };
+          if(new Blob([JSON.stringify(photoDoc)]).size > MAX_ENTRY_BYTES){ skippedOversized++; return; } // safety net; shouldn't happen after compression
+          const ref = draft.id ? entryPhotosCollection.doc(draft.id) : entryPhotosCollection.doc();
+          batch.set(ref, photoDoc);
+          if(draft.id) keptIds.push(draft.id);
+        });
+        const removedIds = originalGalleryPhotoIds.filter(id => !keptIds.includes(id));
+        removedIds.forEach(id => batch.delete(entryPhotosCollection.doc(id)));
+        if(skippedOversized){
+          showToast(skippedOversized === 1 ? 'One photo was too large and was skipped' : `${skippedOversized} photos were too large and were skipped`);
+        }
+      }
+
+      await batch.commit();
     }catch(e){
       console.error(e);
       showToast('Could not save — try again');
