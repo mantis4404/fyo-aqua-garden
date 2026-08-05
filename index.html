@@ -733,6 +733,7 @@ function normalizeEntry(raw){
     videoUrl: raw.videoUrl || '',
     notes: raw.notes || '',
     folderId: raw.folderId || null,
+    author: raw.author || '',
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now()
   };
 }
@@ -1273,7 +1274,12 @@ function openSpeciesDetail(id){
     ${heroSrc ? `<img class="modal-image" src="${heroSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
     <div class="doc-title">${escapeHtml(e.name)}</div>
     ${e.species ? `<div class="doc-species">${escapeHtml(e.species)}</div>` : ''}
-    ${e.dateAdded ? `<div class="meta-line" style="margin-bottom:20px; color:var(--muted);">Logged since ${escapeHtml(e.dateAdded)}</div>` : ''}
+    ${(e.dateAdded || e.author) ? `
+      <div class="meta-line" style="margin-bottom:20px; color:var(--muted); display:flex; justify-content:space-between; align-items:baseline; gap:12px;">
+        <span>${e.dateAdded ? `Logged since ${escapeHtml(e.dateAdded)}` : ''}</span>
+        <span>${e.author ? escapeHtml(e.author) : ''}</span>
+      </div>
+    ` : ''}
     ${e.notes ? `<div class="notes" style="border-top:1px solid var(--line-2); padding-top:14px; padding-bottom:14px;">${e.notes}</div>` : ''}
     ${videoId ? `
       <div class="entry-video">
@@ -1600,6 +1606,7 @@ function renderEditor(cat, id){
       videoUrl: videoInput,
       notes: document.getElementById('docNotes').innerHTML.trim(),
       folderId: existing ? (existing.folderId || null) : (editing && editing.folderId ? editing.folderId : null),
+      author: existing && existing.author ? existing.author : (currentUser ? currentUser.split('@')[0] : ''),
       createdAt: existing && existing.createdAt ? existing.createdAt : Date.now()
     };
 
