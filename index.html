@@ -141,6 +141,22 @@
 
   .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(270px,1fr)); gap:18px; }
 
+  .gallery-breadcrumb{ font-size:0.98rem; margin-bottom:4px; }
+  .gallery-crumb{ all:unset; cursor:pointer; font-family:'Fraunces', serif; font-size:1.4rem; font-weight:600; }
+  .gallery-crumb:hover{ text-decoration:underline; }
+  .gallery-crumb:last-child{ color:var(--muted); font-weight:500; }
+  .gallery-crumb-sep{ margin:0 8px; color:var(--muted); }
+
+  .folder-thumb-placeholder{
+    width:100%; height:130px; display:flex; align-items:center; justify-content:center;
+    font-size:2.3rem; background:var(--bg);
+  }
+  .card.drag-over{ box-shadow: 0 0 0 2px var(--plants); }
+  .folder-edit-btn{
+    all:unset; cursor:pointer; font-size:0.78rem; color:var(--muted); padding:2px 0;
+  }
+  .folder-edit-btn:hover{ color:var(--text); }
+
   .card{
     background: var(--panel); border:1px solid var(--line); border-radius: var(--radius);
     padding: 0; display:flex; flex-direction:column;
@@ -185,12 +201,11 @@
     display:flex; align-items:center; justify-content:center; gap:10px; padding: 30px;
   }
   .lightbox[hidden]{ display:none; }
-  .lb-content{ display:flex; align-items:center; gap:26px; max-width:88vw; max-height:82vh; }
   .lightbox img{ max-width:70vw; max-height:80vh; border-radius:10px; object-fit:contain; display:block; }
   .lb-desc{
     width:300px; max-width:34vw; max-height:80vh; overflow-y:auto;
     color:#fff; background:rgba(0,0,0,0.32); padding:22px 24px; border-radius:10px;
-    font-size:0.92rem; line-height:1.65;
+    font-size:0.92rem; line-height:1.65; white-space:pre-wrap;
   }
   .lb-desc[hidden]{ display:none; }
   .lb-desc ul{ margin:4px 0; padding-left:18px; }
@@ -329,6 +344,7 @@
   .gallery-photo-caption{
     width:100%; font-size:0.82rem; padding:7px 9px; border:1px solid var(--line); border-radius:6px;
     background:var(--panel); color:var(--text); font-family:inherit; box-sizing:border-box;
+    resize:vertical; line-height:1.4; min-height:2.6em;
   }
   .gallery-photo-caption:focus{ outline:none; border-color:var(--muted); }
   .photos-loading{ font-size:0.85rem; color:var(--muted); padding:8px 0; grid-column:1/-1; }
@@ -417,11 +433,9 @@
 <div class="lightbox" id="lightbox" hidden>
   <button class="lb-close" id="lbClose" aria-label="Close">&times;</button>
   <button class="lb-nav lb-prev" id="lbPrev" aria-label="Previous photo">&#8249;</button>
-  <div class="lb-content">
-    <img id="lbImg" src="" alt="">
-    <div class="lb-desc" id="lbDesc" hidden></div>
-  </div>
+  <img id="lbImg" src="" alt="">
   <button class="lb-nav lb-next" id="lbNext" aria-label="Next photo">&#8250;</button>
+  <div class="lb-desc" id="lbDesc" hidden></div>
   <div class="lb-caption" id="lbCaption"></div>
 </div>
 
@@ -494,6 +508,22 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="folderModal" hidden>
+  <div class="confirm-panel" style="max-width:420px;">
+    <h3 id="folderModalTitle">New folder</h3>
+    <p>Give it a name, and optionally a cover photo.</p>
+    <input type="text" id="folderNameInput" class="form-input" placeholder="Folder name" style="margin-bottom:16px;">
+    <label style="display:block; font-family:'IBM Plex Mono', monospace; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); margin-bottom:8px;">Thumbnail (optional)</label>
+    <div id="folderThumbPreview" style="width:100px; height:100px; border-radius:8px; overflow:hidden; border:1px solid var(--line); background:var(--bg); display:flex; align-items:center; justify-content:center; margin-bottom:18px; cursor:pointer; font-size:1.8rem;">📁</div>
+    <input type="file" id="folderThumbInput" accept="image/*" hidden>
+    <div class="confirm-actions">
+      <button class="btn-secondary" id="folderCancelBtn">Cancel</button>
+      <button class="btn-danger-filled" id="folderDeleteBtn" style="display:none;">Delete</button>
+      <button class="btn-primary" id="folderSaveBtn" style="background:var(--plants)">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
@@ -518,12 +548,15 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const entriesCollection = db.collection('entries');
 const entryPhotosCollection = db.collection('entryPhotos');
+const galleryFoldersCollection = db.collection('galleryFolders');
 
 // List allowed email addresses here — must match the Firestore Security Rules.
 const ALLOWED_USERS = ["howingowentam@gmail.com", "lazerboltx1@gmail.com"];
 
 let currentUser = null;
 let entries = [];
+let galleryFolders = [];
+let galleryFolderPath = []; // array of {id, name}, root = []
 let currentPage = 'home';
 let editing = null;
 
@@ -538,12 +571,13 @@ try{
   if(savedNav && VALID_PAGES.includes(savedNav.page)){
     currentPage = savedNav.page;
     pendingScrollY = typeof savedNav.scrollY === 'number' ? savedNav.scrollY : 0;
+    if(Array.isArray(savedNav.folderPath)) galleryFolderPath = savedNav.folderPath;
   }
 }catch(e){}
 
 function saveNavState(){
   try{
-    localStorage.setItem(NAV_STATE_KEY, JSON.stringify({ page: currentPage, scrollY: window.scrollY }));
+    localStorage.setItem(NAV_STATE_KEY, JSON.stringify({ page: currentPage, scrollY: window.scrollY, folderPath: galleryFolderPath }));
   }catch(e){}
 }
 
@@ -678,6 +712,7 @@ function normalizeEntry(raw){
     thumbnail: raw.thumbnail || null,
     videoUrl: raw.videoUrl || '',
     notes: raw.notes || '',
+    folderId: raw.folderId || null,
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now()
   };
 }
@@ -719,6 +754,15 @@ function subscribeEntries(){
   });
 }
 
+function subscribeGalleryFolders(){
+  galleryFoldersCollection.onSnapshot((snapshot) => {
+    galleryFolders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if(currentPage === 'Gallery' && !editing) renderAll();
+  }, (err) => {
+    console.error(err);
+  });
+}
+
 function loadTheme(){
   try{
     const theme = localStorage.getItem(THEME_KEY) || 'light';
@@ -749,6 +793,7 @@ function renderAll(){
   updateNavActive();
   if(editing){ renderEditor(editing.category, editing.id); return; }
   if(currentPage === 'home') renderHome();
+  else if(currentPage === 'Gallery') renderGalleryCategory();
   else renderCategory(currentPage);
 }
 
@@ -851,6 +896,276 @@ function renderCategory(cat){
   }
   grid.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
 }
+
+function currentGalleryFolderId(){
+  return galleryFolderPath.length ? galleryFolderPath[galleryFolderPath.length - 1].id : null;
+}
+
+function renderGalleryBreadcrumbHtml(){
+  const parts = [{ id: null, name: 'Gallery' }, ...galleryFolderPath];
+  return parts.map((p, i) => `<button type="button" class="gallery-crumb" data-crumb-idx="${i}">${escapeHtml(p.name)}</button>`)
+    .join('<span class="gallery-crumb-sep">›</span>');
+}
+
+async function moveEntryToFolder(entryId, folderId){
+  if(!isAuthorized()) return;
+  try{
+    await entriesCollection.doc(entryId).update({ folderId: folderId || null });
+    showToast('Moved');
+  }catch(e){ console.error(e); showToast('Could not move — try again'); }
+}
+
+function folderIsDescendantOf(folderId, maybeAncestorId){
+  let p = folderId;
+  while(p){
+    if(p === maybeAncestorId) return true;
+    const f = galleryFolders.find(x => x.id === p);
+    p = f ? (f.parentId || null) : null;
+  }
+  return false;
+}
+
+async function moveFolderToParent(folderId, newParentId){
+  if(!isAuthorized()) return;
+  if(folderId === newParentId) return;
+  if(newParentId && folderIsDescendantOf(newParentId, folderId)){
+    showToast("Can't move a folder into its own subfolder");
+    return;
+  }
+  try{
+    await galleryFoldersCollection.doc(folderId).update({ parentId: newParentId || null });
+    showToast('Moved');
+  }catch(e){ console.error(e); showToast('Could not move — try again'); }
+}
+
+function renderGalleryCategory(){
+  const main = document.getElementById('main');
+  main.setAttribute('data-page', 'Gallery');
+  const folderId = currentGalleryFolderId();
+  const subfolders = galleryFolders.filter(f => (f.parentId || null) === folderId);
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  let items = entries.filter(e => e.category === 'Gallery' && (e.folderId || null) === folderId);
+  if(search){
+    items = items.filter(e => (e.name||'').toLowerCase().includes(search));
+  }
+
+  main.innerHTML = `
+    <div class="cat-header">
+      <div class="heading">
+        <div>
+          <div class="gallery-breadcrumb" id="galleryBreadcrumb">${renderGalleryBreadcrumbHtml()}</div>
+          <div class="sub-count">${subfolders.length} folder${subfolders.length===1?'':'s'} · ${items.length} post${items.length===1?'':'s'}</div>
+        </div>
+      </div>
+      ${isAuthorized() ? `
+        <div style="display:flex; gap:10px;">
+          <button class="add-btn" id="newFolderBtn" style="background:var(--muted);">+ New folder</button>
+          <button class="add-btn" id="addBtn">+ Add a gallery post</button>
+        </div>
+      ` : ''}
+    </div>
+    <div class="grid" id="catGrid"></div>
+  `;
+
+  const grid = document.getElementById('catGrid');
+  const tiles = [];
+
+  subfolders.forEach(f => {
+    tiles.push(`
+      <div class="card folder-card" data-folder-id="${f.id}">
+        ${f.thumbnail ? `<img class="thumb" src="${f.thumbnail}" alt="${escapeHtml(f.name)}">` : `<div class="folder-thumb-placeholder">📁</div>`}
+        <div class="card-body">
+          <div class="name">${escapeHtml(f.name)}</div>
+          ${isAuthorized() ? `<button type="button" class="folder-edit-btn" data-folder-id="${f.id}">Edit</button>` : ''}
+        </div>
+      </div>
+    `);
+  });
+
+  items.forEach(e => {
+    const thumbSrc = e.thumbnail || (e.photos && e.photos.length ? e.photos[0] : '');
+    tiles.push(`
+      <div class="card" data-view="${e.id}" data-entry-id="${e.id}">
+        ${thumbSrc ? `<img class="thumb" src="${thumbSrc}" alt="${escapeHtml(e.name)}" onerror="this.style.display='none'">` : ''}
+        <div class="card-body">
+          <div class="name">${escapeHtml(e.name)}</div>
+        </div>
+      </div>
+    `);
+  });
+
+  if(!subfolders.length && !items.length){
+    grid.innerHTML = `<div class="empty">
+      <h3>${search ? 'No matches' : 'Nothing here yet'}</h3>
+      <p>${search ? 'Try a different search.' : 'Add a gallery post or create a folder to start organizing.'}</p>
+    </div>`;
+  } else {
+    grid.innerHTML = tiles.join('');
+  }
+
+  // Breadcrumb navigation
+  document.getElementById('galleryBreadcrumb').querySelectorAll('.gallery-crumb').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const idx = Number(btn.dataset.crumbIdx);
+      galleryFolderPath = idx === 0 ? [] : galleryFolderPath.slice(0, idx);
+      renderAll();
+      window.scrollTo(0, 0);
+      saveNavState();
+    });
+    // Allow dropping an item directly onto a breadcrumb segment to move it up
+    btn.addEventListener('dragover', (ev)=>{ ev.preventDefault(); btn.classList.add('drag-over'); });
+    btn.addEventListener('dragleave', ()=> btn.classList.remove('drag-over'));
+    btn.addEventListener('drop', async (ev)=>{
+      ev.preventDefault();
+      btn.classList.remove('drag-over');
+      const idx = Number(btn.dataset.crumbIdx);
+      const targetFolderId = idx === 0 ? null : galleryFolderPath[idx - 1].id;
+      const draggedEntryId = ev.dataTransfer.getData('text/entry-id');
+      const draggedFolderId = ev.dataTransfer.getData('text/folder-id');
+      if(draggedEntryId) await moveEntryToFolder(draggedEntryId, targetFolderId);
+      else if(draggedFolderId) await moveFolderToParent(draggedFolderId, targetFolderId);
+    });
+  });
+
+  // Folder tiles: click to open, drag to move, drop target for moving items in
+  grid.querySelectorAll('.folder-card').forEach(tile=>{
+    tile.setAttribute('draggable', isAuthorized() ? 'true' : 'false');
+    tile.addEventListener('click', (ev)=>{
+      if(ev.target.closest('.folder-edit-btn')) return;
+      const f = galleryFolders.find(x => x.id === tile.dataset.folderId);
+      if(!f) return;
+      galleryFolderPath.push({ id: f.id, name: f.name });
+      renderAll();
+      window.scrollTo(0, 0);
+      saveNavState();
+    });
+    if(isAuthorized()){
+      tile.addEventListener('dragstart', (ev)=>{
+        ev.dataTransfer.setData('text/folder-id', tile.dataset.folderId);
+        ev.dataTransfer.effectAllowed = 'move';
+      });
+      tile.addEventListener('dragover', (ev)=>{ ev.preventDefault(); tile.classList.add('drag-over'); });
+      tile.addEventListener('dragleave', ()=> tile.classList.remove('drag-over'));
+      tile.addEventListener('drop', async (ev)=>{
+        ev.preventDefault();
+        tile.classList.remove('drag-over');
+        const targetFolderId = tile.dataset.folderId;
+        const draggedEntryId = ev.dataTransfer.getData('text/entry-id');
+        const draggedFolderId = ev.dataTransfer.getData('text/folder-id');
+        if(draggedEntryId) await moveEntryToFolder(draggedEntryId, targetFolderId);
+        else if(draggedFolderId && draggedFolderId !== targetFolderId) await moveFolderToParent(draggedFolderId, targetFolderId);
+      });
+    }
+  });
+  grid.querySelectorAll('.folder-edit-btn').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      openFolderEditModal(btn.dataset.folderId);
+    });
+  });
+
+  // Entry tiles: click to open detail, drag to move into a folder
+  grid.querySelectorAll('[data-entry-id]').forEach(tile=>{
+    tile.setAttribute('draggable', isAuthorized() ? 'true' : 'false');
+    if(isAuthorized()){
+      tile.addEventListener('dragstart', (ev)=>{
+        ev.dataTransfer.setData('text/entry-id', tile.dataset.entryId);
+        ev.dataTransfer.effectAllowed = 'move';
+      });
+    }
+  });
+  grid.querySelectorAll('[data-view]').forEach(card=> card.addEventListener('click', ()=> openSpeciesDetail(card.dataset.view)));
+
+  if(isAuthorized()){
+    document.getElementById('addBtn').addEventListener('click', ()=> openEditor(null, 'Gallery', currentGalleryFolderId()));
+    document.getElementById('newFolderBtn').addEventListener('click', ()=> openFolderEditModal(null));
+  }
+}
+
+let editingFolderId = null;
+let editingFolderThumb = null;
+
+function openFolderEditModal(folderId){
+  if(!isAuthorized()) return;
+  editingFolderId = folderId;
+  const folder = folderId ? galleryFolders.find(f => f.id === folderId) : null;
+  editingFolderThumb = folder ? (folder.thumbnail || null) : null;
+
+  document.getElementById('folderModalTitle').textContent = folder ? 'Edit folder' : 'New folder';
+  document.getElementById('folderNameInput').value = folder ? folder.name : '';
+  document.getElementById('folderThumbPreview').innerHTML = editingFolderThumb
+    ? `<img src="${editingFolderThumb}" alt="" style="width:100%; height:100%; object-fit:cover;">`
+    : '📁';
+  document.getElementById('folderDeleteBtn').style.display = folder ? '' : 'none';
+  document.getElementById('folderModal').hidden = false;
+  document.getElementById('folderNameInput').focus();
+}
+
+function closeFolderEditModal(){
+  document.getElementById('folderModal').hidden = true;
+}
+
+document.getElementById('folderThumbPreview').addEventListener('click', ()=> document.getElementById('folderThumbInput').click());
+document.getElementById('folderThumbInput').addEventListener('change', async (ev)=>{
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if(!file || !file.type.startsWith('image/')) return;
+  try{
+    editingFolderThumb = await compressImageFile(file);
+    document.getElementById('folderThumbPreview').innerHTML = `<img src="${editingFolderThumb}" alt="" style="width:100%; height:100%; object-fit:cover;">`;
+  }catch(e){
+    showToast("Couldn't process that photo");
+  }
+});
+
+document.getElementById('folderCancelBtn').addEventListener('click', closeFolderEditModal);
+document.getElementById('folderModal').addEventListener('click', (ev)=>{ if(ev.target.id === 'folderModal') closeFolderEditModal(); });
+
+document.getElementById('folderSaveBtn').addEventListener('click', async ()=>{
+  if(!isAuthorized()) return;
+  const name = document.getElementById('folderNameInput').value.trim();
+  if(!name){ document.getElementById('folderNameInput').focus(); return; }
+
+  const data = {
+    name,
+    parentId: currentGalleryFolderId(),
+    thumbnail: editingFolderThumb || null,
+    createdAt: Date.now()
+  };
+
+  try{
+    if(editingFolderId){
+      await galleryFoldersCollection.doc(editingFolderId).update({ name: data.name, thumbnail: data.thumbnail });
+    } else {
+      await galleryFoldersCollection.add(data);
+    }
+  }catch(e){
+    console.error(e);
+    showToast('Could not save folder — try again');
+    return;
+  }
+  closeFolderEditModal();
+  showToast(editingFolderId ? 'Folder updated' : 'Folder created');
+});
+
+document.getElementById('folderDeleteBtn').addEventListener('click', async ()=>{
+  if(!isAuthorized() || !editingFolderId) return;
+  const hasSubfolders = galleryFolders.some(f => (f.parentId||null) === editingFolderId);
+  const hasEntries = entries.some(e => e.category === 'Gallery' && (e.folderId||null) === editingFolderId);
+  if(hasSubfolders || hasEntries){
+    showToast("This folder isn't empty — move or remove its contents first");
+    return;
+  }
+  try{
+    await galleryFoldersCollection.doc(editingFolderId).delete();
+  }catch(e){
+    console.error(e);
+    showToast('Could not delete folder — try again');
+    return;
+  }
+  closeFolderEditModal();
+  showToast('Folder deleted');
+});
 
 let lbState = { photos: [], idx: 0, captions: [], showDesc: false, name: '', species: '' };
 
@@ -1156,7 +1471,7 @@ function renderEditor(cat, id){
           <button type="button" class="doc-photo-remove" data-idx="${i}" aria-label="Remove photo">&times;</button>
           ${editingThumbnail === draft.url ? `<span class="thumb-badge">Thumbnail</span>` : ''}
         </div>
-        <input type="text" class="gallery-photo-caption" data-idx="${i}" placeholder="Add a caption…" value="${escapeHtml(draft.caption||'')}">
+        <textarea class="gallery-photo-caption" data-idx="${i}" placeholder="Add a caption…" rows="2">${escapeHtml(draft.caption||'')}</textarea>
       </div>
     `).join('');
     grid.querySelectorAll('.doc-photo-remove').forEach(btn=>{
@@ -1178,9 +1493,12 @@ function renderEditor(cat, id){
         });
       });
     });
-    grid.querySelectorAll('.gallery-photo-caption').forEach(input=>{
-      input.addEventListener('input', ()=>{
-        galleryPhotoDrafts[Number(input.dataset.idx)].caption = input.value;
+    grid.querySelectorAll('.gallery-photo-caption').forEach(ta=>{
+      ta.style.height = ta.scrollHeight + 'px';
+      ta.addEventListener('input', ()=>{
+        galleryPhotoDrafts[Number(ta.dataset.idx)].caption = ta.value;
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
       });
     });
   }
@@ -1261,6 +1579,7 @@ function renderEditor(cat, id){
       thumbnail: editingThumbnail || null,
       videoUrl: videoInput,
       notes: document.getElementById('docNotes').innerHTML.trim(),
+      folderId: existing ? (existing.folderId || null) : (editing && editing.folderId ? editing.folderId : null),
       createdAt: existing && existing.createdAt ? existing.createdAt : Date.now()
     };
 
@@ -1312,12 +1631,12 @@ function renderEditor(cat, id){
   document.getElementById('docName').focus();
 }
 
-function openEditor(id, cat){
+function openEditor(id, cat, folderId){
   if (!isAuthorized()) {
     document.getElementById('loginModal').hidden = false;
     return;
   }
-  editing = { id, category: cat };
+  editing = { id, category: cat, folderId: folderId || null };
   renderAll();
 }
 
@@ -1477,6 +1796,7 @@ document.getElementById('catList').addEventListener('click', (e)=>{
   if(!btn) return;
   editing = null;
   currentPage = btn.dataset.cat;
+  galleryFolderPath = [];
   renderAll();
   window.scrollTo(0, 0);
   saveNavState();
@@ -1488,6 +1808,7 @@ document.getElementById('searchInput').addEventListener('input', ()=>{
 
 loadTheme();
 subscribeEntries();
+subscribeGalleryFolders();
 </script>
 
 </body>
